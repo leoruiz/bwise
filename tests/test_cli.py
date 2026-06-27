@@ -244,6 +244,14 @@ def test_list_items_search_term(monkeypatch, capsys):
     assert capsys.readouterr().out.split() == ["x"]
 
 
+def test_list_items_with_ids(monkeypatch, capsys):
+    items = [{"name": "x", "id": "abc", "type": 1}]
+    res = {"success": True, "data": {"data": items}}
+    monkeypatch.setattr(cli, "request", lambda *a, **k: res)
+    cli.list_items(ids=True)
+    assert capsys.readouterr().out.strip() == "abc  x"
+
+
 def test_completion_prints_fish_script(capsys):
     cli.completion("fish")
     assert "complete -c bwise" in capsys.readouterr().out

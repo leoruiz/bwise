@@ -166,8 +166,10 @@ def token(item: str, /, *, item_type: TypeOption = None) -> None:
 
 
 @app.command(name="list")
-def list_items(term: str = "", /, *, item_type: TypeOption = None) -> None:
-    """Print vault item names; TERM searches name/uri/notes, --type filters by type."""
+def list_items(
+    term: str = "", /, *, item_type: TypeOption = None, ids: bool = False
+) -> None:
+    """List item names; TERM searches, --type filters by type, --ids prefixes the id."""
     wanted = ITEM_TYPES[item_type] if item_type else None
     path = "/list/object/items"
     if term:
@@ -177,7 +179,7 @@ def list_items(term: str = "", /, *, item_type: TypeOption = None) -> None:
         if wanted is not None and item.get("type") != wanted:
             continue
         if name := item.get("name"):
-            print(name)
+            print(f"{item['id']}  {name}" if ids else name)
 
 
 @app.command

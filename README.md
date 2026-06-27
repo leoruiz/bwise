@@ -43,7 +43,7 @@ bwise get  <item>        # raw item JSON
 bwise get-notes <item>   # just the notes field
 bwise token <item>       # the item's secret (password / field / notes)
 bwise env  <item>        # `export` lines + @file: secrets
-bwise list [TERM] [--type T]   # item names; TERM searches name/uri/notes, --type filters
+bwise list [TERM] [--type T] [--ids]   # item names; TERM searches, --type filters, --ids shows ids
 
 # Item commands accept --type to assert/guard the item's type, e.g.
 bwise get-notes ylab/api --type note   # errors unless ylab/api is a secure note
