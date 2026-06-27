@@ -5,7 +5,7 @@ import urllib.error
 import pytest
 
 from bwise import client
-from bwise.client import BwError
+from bwise.client import BwError, VaultLockedError
 
 
 def test_extract_token_prefers_password():
@@ -23,14 +23,19 @@ def test_extract_token_raises_when_empty():
         client.extract_token({"fields": [{"value": ""}], "notes": "  "})
 
 
-def test_check_locked_message_is_actionable():
-    with pytest.raises(BwError, match="run `bwise up`"):
+def test_check_locked_raises_vault_locked_error():
+    with pytest.raises(VaultLockedError, match="vault is locked"):
         client.check({"success": False, "message": "Vault is locked."})
 
 
+def test_vault_locked_error_is_a_bwerror():
+    assert issubclass(VaultLockedError, BwError)
+
+
 def test_check_passes_through_other_messages():
-    with pytest.raises(BwError, match="boom"):
+    with pytest.raises(BwError, match="boom") as exc:
         client.check({"success": False, "message": "boom"})
+    assert not isinstance(exc.value, VaultLockedError)
 
 
 def test_get_item_exact_name_match(monkeypatch):

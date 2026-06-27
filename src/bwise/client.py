@@ -27,6 +27,10 @@ class BwError(RuntimeError):
     """A ``bw serve`` request failed (unreachable, locked, not found, ...)."""
 
 
+class VaultLockedError(BwError):
+    """The vault is locked; unlock before reading or writing."""
+
+
 def request(
     method: str, path: str, body: dict | None = None, timeout: int = TIMEOUT_S
 ) -> dict:
@@ -53,12 +57,12 @@ def request(
 
 
 def check(res: dict) -> dict:
-    """Raise :class:`BwError` if the daemon reported failure (locked → hint)."""
+    """Raise on a failure response; a locked vault raises :class:`VaultLockedError`."""
     if not res.get("success"):
         message = res.get("message", "request failed")
-        raise BwError(
-            "vault is locked — run `bwise up`" if "lock" in message.lower() else message
-        )
+        if "lock" in message.lower():
+            raise VaultLockedError("vault is locked")
+        raise BwError(message)
     return res
 
 

@@ -13,7 +13,15 @@ import cyclopts
 from loguru import logger
 
 from . import doctor as doctor_mod, env as env_mod
-from .client import BwError, extract_token, get_item, put_item, request, status
+from .client import (
+    BwError,
+    VaultLockedError,
+    extract_token,
+    get_item,
+    put_item,
+    request,
+    status,
+)
 from .pinentry import prompt_master_password
 
 logger.remove()
@@ -56,11 +64,9 @@ def _default() -> None:
 def lock() -> None:
     """Lock the vault."""
     result = request("POST", "/lock")
-    logger.info(
-        "vault locked"
-        if result.get("success")
-        else result.get("message", "lock failed")
-    )
+    if not result.get("success"):
+        raise BwError(f"lock failed: {result.get('message')}")
+    logger.info("vault locked")
 
 
 @app.command(name="status")
@@ -130,6 +136,9 @@ def set_notes(item: str, /) -> None:
 def main() -> None:
     try:
         app()
+    except VaultLockedError:
+        print("bwise: vault is locked — run `bwise up`", file=sys.stderr)
+        sys.exit(2)
     except BwError as exc:
         print(f"bwise: {exc}", file=sys.stderr)
         sys.exit(2)

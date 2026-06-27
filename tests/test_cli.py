@@ -3,7 +3,7 @@ import json
 import pytest
 
 from bwise import cli
-from bwise.client import BwError
+from bwise.client import BwError, VaultLockedError
 
 
 @pytest.fixture
@@ -60,11 +60,12 @@ def test_lock_success(monkeypatch):
     cli.lock()
 
 
-def test_lock_failure(monkeypatch):
+def test_lock_failure_raises(monkeypatch):
     monkeypatch.setattr(
         cli, "request", lambda *a, **k: {"success": False, "message": "x"}
     )
-    cli.lock()
+    with pytest.raises(BwError, match="lock failed"):
+        cli.lock()
 
 
 @pytest.mark.parametrize(
@@ -158,6 +159,17 @@ def test_main_bwerror_exits_2(monkeypatch, capsys):
         cli.main()
     assert exc.value.code == 2
     assert "bwise: locked" in capsys.readouterr().err
+
+
+def test_main_vault_locked_adds_hint(monkeypatch, capsys):
+    def boom():
+        raise VaultLockedError("vault is locked")
+
+    monkeypatch.setattr(cli, "app", boom)
+    with pytest.raises(SystemExit) as exc:
+        cli.main()
+    assert exc.value.code == 2
+    assert "run `bwise up`" in capsys.readouterr().err
 
 
 def test_doctor_all_ok(monkeypatch, capsys):

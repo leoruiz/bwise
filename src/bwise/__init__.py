@@ -6,9 +6,12 @@ programmatic access, or use the ``bwise`` CLI.
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
+
 from .client import (
     BASE,
     BwError,
+    VaultLockedError,
     check,
     extract_token,
     get_item,
@@ -17,9 +20,15 @@ from .client import (
     status,
 )
 
+try:
+    __version__ = version("bwise")
+except PackageNotFoundError:  # pragma: no cover
+    __version__ = "0+unknown"
+
 __all__ = [
     "BASE",
     "BwError",
+    "VaultLockedError",
     "check",
     "extract_token",
     "get_item",
@@ -27,5 +36,3 @@ __all__ = [
     "request",
     "status",
 ]
-
-__version__ = "0.1.0"
