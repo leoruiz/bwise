@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sys
+from typing import Literal
 
 import cyclopts
 from loguru import logger
@@ -16,6 +17,7 @@ from . import doctor as doctor_mod, env as env_mod
 from .client import (
     BwError,
     VaultLockedError,
+    check,
     extract_token,
     get_item,
     put_item,
@@ -113,6 +115,21 @@ def get_notes(item: str, /) -> None:
 def token(item: str, /) -> None:
     """Print ITEM's secret: password, else first custom field, else notes."""
     print(extract_token(get_item(item)))
+
+
+@app.command(name="list")
+def list_items() -> None:
+    """Print the names of all vault items, one per line."""
+    res = check(request("GET", "/list/object/items"))
+    for item in res["data"]["data"]:
+        if name := item.get("name"):
+            print(name)
+
+
+@app.command
+def completion(shell: Literal["fish", "bash", "zsh"] = "fish") -> None:
+    """Print a shell completion script for bwise (default: fish)."""
+    print(app.generate_completion(prog_name="bwise", shell=shell))
 
 
 @app.command

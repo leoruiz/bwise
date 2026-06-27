@@ -135,6 +135,19 @@ def test_token(monkeypatch, capsys):
     assert capsys.readouterr().out.strip() == "pw"
 
 
+def test_list_items(monkeypatch, capsys):
+    items = [{"name": "a"}, {"name": ""}, {"name": "b"}]
+    res = {"success": True, "data": {"data": items}}
+    monkeypatch.setattr(cli, "request", lambda *a, **k: res)
+    cli.list_items()
+    assert capsys.readouterr().out.split() == ["a", "b"]
+
+
+def test_completion_prints_fish_script(capsys):
+    cli.completion("fish")
+    assert "complete -c bwise" in capsys.readouterr().out
+
+
 def test_set_notes(monkeypatch):
     item = {"id": "1", "notes": "old"}
     monkeypatch.setattr(cli, "get_item", lambda i: item)
