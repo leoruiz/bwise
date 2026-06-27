@@ -1,0 +1,33 @@
+[project]
+name = "bwise"
+version = "0.1.0"
+description = "Bitwarden Wrapper Injecting Secrets Everywhere — a thin client over the local `bw serve` daemon."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "leoruiz" }]
+keywords = ["bitwarden", "secrets", "cli", "direnv", "bw"]
+dependencies = ["cyclopts>=4", "loguru>=0.7"]
+
+[project.urls]
+Homepage = "https://github.com/leoruiz/bwise"
+Repository = "https://github.com/leoruiz/bwise"
+
+[project.scripts]
+bwise = "bwise.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bwise"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
