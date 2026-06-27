@@ -12,7 +12,7 @@ import sys
 import cyclopts
 from loguru import logger
 
-from . import env as env_mod
+from . import doctor as doctor_mod, env as env_mod
 from .client import BwError, extract_token, get_item, put_item, request, status
 from .pinentry import prompt_master_password
 
@@ -105,6 +105,16 @@ def get(item: str, /, *, notes: bool = False) -> None:
 def token(item: str, /) -> None:
     """Print ITEM's secret: password, else first custom field, else notes."""
     print(extract_token(get_item(item)))
+
+
+@app.command
+def doctor() -> None:
+    """Health-check the bw CLI, the bw serve daemon, and the vault."""
+    results = doctor_mod.run_checks()
+    for level, msg in results:
+        print(f"  {doctor_mod.GLYPH[level]} {msg}")
+    if any(level == doctor_mod.FAIL for level, _ in results):
+        raise SystemExit(1)
 
 
 @app.command(name="set-notes")

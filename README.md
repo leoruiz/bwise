@@ -43,6 +43,7 @@ bwise get  <item>        # raw item JSON
 bwise get  <item> --notes
 bwise token <item>       # the item's secret (password / field / notes)
 bwise env  <item>        # `export` lines + @file: secrets
+bwise doctor             # health-check the bw CLI, daemon, and vault
 bwise set-notes <item>   # replace notes from stdin
 ```
 

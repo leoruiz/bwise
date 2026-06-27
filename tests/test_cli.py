@@ -158,3 +158,17 @@ def test_main_bwerror_exits_2(monkeypatch, capsys):
         cli.main()
     assert exc.value.code == 2
     assert "bwise: locked" in capsys.readouterr().err
+
+
+def test_doctor_all_ok(monkeypatch, capsys):
+    monkeypatch.setattr(cli.doctor_mod, "run_checks", lambda: [("ok", "fine")])
+    cli.doctor()  # no SystemExit
+    assert "✓ fine" in capsys.readouterr().out
+
+
+def test_doctor_with_failure_exits_1(monkeypatch, capsys):
+    monkeypatch.setattr(cli.doctor_mod, "run_checks", lambda: [("fail", "broken")])
+    with pytest.raises(SystemExit) as exc:
+        cli.doctor()
+    assert exc.value.code == 1
+    assert "✗ broken" in capsys.readouterr().out
