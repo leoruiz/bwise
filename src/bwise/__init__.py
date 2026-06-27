@@ -10,6 +10,7 @@ from importlib.metadata import PackageNotFoundError, version
 
 from .client import (
     BASE,
+    AmbiguousItemError,
     BwError,
     VaultLockedError,
     check,
@@ -27,6 +28,7 @@ except PackageNotFoundError:  # pragma: no cover
 
 __all__ = [
     "BASE",
+    "AmbiguousItemError",
     "BwError",
     "VaultLockedError",
     "check",

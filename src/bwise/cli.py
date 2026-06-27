@@ -15,6 +15,7 @@ from loguru import logger
 
 from . import doctor as doctor_mod, env as env_mod
 from .client import (
+    AmbiguousItemError,
     BwError,
     VaultLockedError,
     check,
@@ -32,6 +33,46 @@ logger.add(sys.stderr, format="bwise: {message}", level="INFO")
 app = cyclopts.App(name="bwise", help=__doc__)
 
 EXIT_STATUS = {"unlocked": 0, "locked": 1, "unauthenticated": 2}
+
+
+def _describe(item: dict) -> str:
+    """A human label to tell duplicate-named items apart (its login username)."""
+    return (item.get("login") or {}).get("username") or "(no username)"
+
+
+def _prompt_choice(count: int) -> int:
+    while True:
+        print(f"Pick [1-{count}]: ", end="", file=sys.stderr, flush=True)
+        try:
+            raw = input()
+        except EOFError as exc:
+            raise BwError("no selection made") from exc
+        if raw.strip().isdigit() and 1 <= int(raw) <= count:
+            return int(raw)
+        print(f"  enter a number between 1 and {count}", file=sys.stderr)
+
+
+def _pick(exc: AmbiguousItemError) -> dict:
+    """Resolve an ambiguous name: prompt on a TTY, else fail with the ids."""
+    candidates = exc.candidates
+    if not sys.stdin.isatty():
+        listing = "\n".join(f"  {c['id']}  ({_describe(c)})" for c in candidates)
+        raise BwError(
+            f"{len(candidates)} items named {exc.name!r}; re-run with the id:\n"
+            f"{listing}"
+        )
+    print(f"{exc.name!r} matches {len(candidates)} items:", file=sys.stderr)
+    for i, candidate in enumerate(candidates, 1):
+        print(f"  {i}) {_describe(candidate)}", file=sys.stderr)
+    return candidates[_prompt_choice(len(candidates)) - 1]
+
+
+def _resolve_item(name: str) -> dict:
+    """Like :func:`get_item`, but interactively disambiguates duplicate names."""
+    try:
+        return get_item(name)
+    except AmbiguousItemError as exc:
+        return _pick(exc)
 
 
 def _unlock() -> None:
@@ -86,7 +127,7 @@ def status_cmd(*, quiet: bool = False) -> None:
 @app.command(name="env")
 def env_cmd(item: str, /) -> None:
     """Print ITEM's custom fields as `export` lines and write any @file: secrets."""
-    fields = get_item(item).get("fields") or []
+    fields = _resolve_item(item).get("fields") or []
     if not fields:
         logger.warning(f"item {item!r} has no custom fields")
 
@@ -102,19 +143,19 @@ def env_cmd(item: str, /) -> None:
 @app.command
 def get(item: str, /) -> None:
     """Print ITEM as JSON."""
-    print(json.dumps(get_item(item), indent=2))
+    print(json.dumps(_resolve_item(item), indent=2))
 
 
 @app.command(name="get-notes")
 def get_notes(item: str, /) -> None:
     """Print ITEM's notes field."""
-    sys.stdout.write(get_item(item).get("notes") or "")
+    sys.stdout.write(_resolve_item(item).get("notes") or "")
 
 
 @app.command
 def token(item: str, /) -> None:
     """Print ITEM's secret: password, else first custom field, else notes."""
-    print(extract_token(get_item(item)))
+    print(extract_token(_resolve_item(item)))
 
 
 @app.command(name="list")
@@ -145,7 +186,7 @@ def doctor() -> None:
 @app.command(name="set-notes")
 def set_notes(item: str, /) -> None:
     """Replace ITEM's notes with stdin, preserving its other fields."""
-    data = get_item(item)
+    data = _resolve_item(item)
     data["notes"] = sys.stdin.read()
     put_item(data)
 

@@ -3,7 +3,15 @@ import json
 import pytest
 
 from bwise import cli
-from bwise.client import BwError, VaultLockedError
+from bwise.client import AmbiguousItemError, BwError, VaultLockedError
+
+
+class _FakeStdin:
+    def __init__(self, tty: bool):
+        self._tty = tty
+
+    def isatty(self) -> bool:
+        return self._tty
 
 
 @pytest.fixture
@@ -133,6 +141,53 @@ def test_token(monkeypatch, capsys):
     monkeypatch.setattr(cli, "get_item", lambda i: {"login": {"password": "pw"}})
     cli.token("x")
     assert capsys.readouterr().out.strip() == "pw"
+
+
+def test_describe_uses_username_or_placeholder():
+    assert cli._describe({"login": {"username": "alice@x"}}) == "alice@x"
+    assert cli._describe({}) == "(no username)"
+
+
+def test_resolve_item_passthrough(monkeypatch):
+    monkeypatch.setattr(cli, "get_item", lambda n: {"id": "1"})
+    assert cli._resolve_item("x") == {"id": "1"}
+
+
+def test_resolve_item_disambiguates_on_tty(monkeypatch):
+    cands = [{"id": "1"}, {"id": "2"}]
+
+    def raise_ambiguous(name):
+        raise AmbiguousItemError("dup", cands)
+
+    monkeypatch.setattr(cli, "get_item", raise_ambiguous)
+    monkeypatch.setattr(cli.sys, "stdin", _FakeStdin(True))
+    monkeypatch.setattr("builtins.input", lambda: "2")
+    assert cli._resolve_item("dup") is cands[1]
+
+
+def test_pick_non_interactive_lists_ids(monkeypatch):
+    exc = AmbiguousItemError(
+        "dup", [{"id": "aaa", "login": {"username": "a"}}, {"id": "bbb"}]
+    )
+    monkeypatch.setattr(cli.sys, "stdin", _FakeStdin(False))
+    with pytest.raises(BwError, match="re-run with the id") as raised:
+        cli._pick(exc)
+    assert "aaa" in str(raised.value) and "bbb" in str(raised.value)
+
+
+def test_prompt_choice_retries_then_accepts(monkeypatch):
+    answers = iter(["x", "0", "3", "1"])
+    monkeypatch.setattr("builtins.input", lambda: next(answers))
+    assert cli._prompt_choice(2) == 1
+
+
+def test_prompt_choice_eof_raises(monkeypatch):
+    def boom():
+        raise EOFError
+
+    monkeypatch.setattr("builtins.input", boom)
+    with pytest.raises(BwError, match="no selection"):
+        cli._prompt_choice(2)
 
 
 def test_list_items(monkeypatch, capsys):

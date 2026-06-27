@@ -1,4 +1,3 @@
-
 from bwise import doctor
 from bwise.client import BwError
 

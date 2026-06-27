@@ -15,12 +15,19 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
 
 BASE = os.environ.get("BW_SERVE_URL", "http://localhost:8087")
 TIMEOUT_S = 30
+
+# A bw item id (UUID): 8-4-4-4-12 hex. Lets get_item accept an id or a name.
+_ITEM_ID = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
+    r"-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
 
 
 class BwError(RuntimeError):
@@ -29,6 +36,15 @@ class BwError(RuntimeError):
 
 class VaultLockedError(BwError):
     """The vault is locked; unlock before reading or writing."""
+
+
+class AmbiguousItemError(BwError):
+    """Multiple items share the requested name; select one by id."""
+
+    def __init__(self, name: str, candidates: list[dict]) -> None:
+        self.name = name
+        self.candidates = candidates
+        super().__init__(f"{len(candidates)} items named {name!r}")
 
 
 def request(
@@ -72,11 +88,19 @@ def status() -> str:
 
 
 def get_item(name: str) -> dict:
-    """Return the vault item whose name exactly matches ``name``."""
+    """Return the vault item with id or exact name ``name``.
+
+    A 36-char UUID is fetched by id; otherwise an exact name match is used.
+    Raises :class:`AmbiguousItemError` when several items share the name.
+    """
+    if _ITEM_ID.match(name):
+        return check(request("GET", f"/object/item/{name}"))["data"]
     res = check(request("GET", f"/list/object/items?search={urllib.parse.quote(name)}"))
     items = [i for i in res["data"]["data"] if i.get("name") == name]
     if not items:
         raise BwError(f"item {name!r} not found")
+    if len(items) > 1:
+        raise AmbiguousItemError(name, items)
     return items[0]
 
 
