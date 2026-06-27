@@ -118,13 +118,13 @@ def test_get_json(monkeypatch, capsys):
 
 def test_get_notes(monkeypatch, capsys):
     monkeypatch.setattr(cli, "get_item", lambda i: {"notes": "secret"})
-    cli.get("x", notes=True)
+    cli.get_notes("x")
     assert capsys.readouterr().out == "secret"
 
 
 def test_get_notes_missing(monkeypatch, capsys):
     monkeypatch.setattr(cli, "get_item", lambda i: {})
-    cli.get("x", notes=True)
+    cli.get_notes("x")
     assert capsys.readouterr().out == ""
 
 

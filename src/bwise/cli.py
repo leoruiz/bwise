@@ -92,13 +92,15 @@ def env_cmd(item: str, /) -> None:
 
 
 @app.command
-def get(item: str, /, *, notes: bool = False) -> None:
-    """Print ITEM as JSON, or just its notes field with --notes."""
-    data = get_item(item)
-    if notes:
-        sys.stdout.write(data.get("notes") or "")
-    else:
-        print(json.dumps(data, indent=2))
+def get(item: str, /) -> None:
+    """Print ITEM as JSON."""
+    print(json.dumps(get_item(item), indent=2))
+
+
+@app.command(name="get-notes")
+def get_notes(item: str, /) -> None:
+    """Print ITEM's notes field."""
+    sys.stdout.write(get_item(item).get("notes") or "")
 
 
 @app.command

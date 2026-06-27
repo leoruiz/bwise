@@ -40,7 +40,7 @@ bwise up                 # unlock (bare `bwise` also unlocks)
 bwise lock
 bwise status [--quiet]   # exit 0/1/2/3 = unlocked/locked/unauthenticated/unreachable
 bwise get  <item>        # raw item JSON
-bwise get  <item> --notes
+bwise get-notes <item>   # just the notes field
 bwise token <item>       # the item's secret (password / field / notes)
 bwise env  <item>        # `export` lines + @file: secrets
 bwise doctor             # health-check the bw CLI, daemon, and vault
