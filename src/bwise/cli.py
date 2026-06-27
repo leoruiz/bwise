@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sys
+import urllib.parse
 from typing import Annotated, Literal
 
 import cyclopts
@@ -165,10 +166,13 @@ def token(item: str, /, *, item_type: TypeOption = None) -> None:
 
 
 @app.command(name="list")
-def list_items(*, item_type: TypeOption = None) -> None:
-    """Print vault item names; --type filters to login/note/card/identity."""
+def list_items(term: str = "", /, *, item_type: TypeOption = None) -> None:
+    """Print vault item names; TERM searches name/uri/notes, --type filters by type."""
     wanted = ITEM_TYPES[item_type] if item_type else None
-    res = check(request("GET", "/list/object/items"))
+    path = "/list/object/items"
+    if term:
+        path += f"?search={urllib.parse.quote(term)}"
+    res = check(request("GET", path))
     for item in res["data"]["data"]:
         if wanted is not None and item.get("type") != wanted:
             continue

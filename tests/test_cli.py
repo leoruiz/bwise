@@ -231,6 +231,19 @@ def test_list_items_filters_by_type(monkeypatch, capsys):
     assert capsys.readouterr().out.split() == ["login1"]
 
 
+def test_list_items_search_term(monkeypatch, capsys):
+    captured = {}
+
+    def fake(method, path, *a, **k):
+        captured["path"] = path
+        return {"success": True, "data": {"data": [{"name": "x", "type": 1}]}}
+
+    monkeypatch.setattr(cli, "request", fake)
+    cli.list_items("bit warden")
+    assert "search=bit%20warden" in captured["path"]
+    assert capsys.readouterr().out.split() == ["x"]
+
+
 def test_completion_prints_fish_script(capsys):
     cli.completion("fish")
     assert "complete -c bwise" in capsys.readouterr().out
