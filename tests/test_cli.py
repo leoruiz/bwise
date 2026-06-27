@@ -153,8 +153,11 @@ def test_resolve_item_passthrough(monkeypatch):
     assert cli._resolve_item("x") == {"id": "1"}
 
 
-def test_resolve_item_disambiguates_on_tty(monkeypatch):
-    cands = [{"id": "1"}, {"id": "2"}]
+def test_resolve_item_disambiguates_on_tty(monkeypatch, capsys):
+    cands = [
+        {"id": "id-aaa", "login": {"username": "alice@x"}},
+        {"id": "id-bbb", "login": {"username": "bob@y"}},
+    ]
 
     def raise_ambiguous(name):
         raise AmbiguousItemError("dup", cands)
@@ -163,6 +166,9 @@ def test_resolve_item_disambiguates_on_tty(monkeypatch):
     monkeypatch.setattr(cli.sys, "stdin", _FakeStdin(True))
     monkeypatch.setattr("builtins.input", lambda: "2")
     assert cli._resolve_item("dup") is cands[1]
+    menu = capsys.readouterr().err
+    assert "alice@x" in menu and "id-aaa" in menu
+    assert "bob@y" in menu and "id-bbb" in menu
 
 
 def test_pick_non_interactive_lists_ids(monkeypatch):

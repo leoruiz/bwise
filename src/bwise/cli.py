@@ -63,7 +63,7 @@ def _pick(exc: AmbiguousItemError) -> dict:
         )
     print(f"{exc.name!r} matches {len(candidates)} items:", file=sys.stderr)
     for i, candidate in enumerate(candidates, 1):
-        print(f"  {i}) {_describe(candidate)}", file=sys.stderr)
+        print(f"  {i}) {_describe(candidate)}   {candidate['id']}", file=sys.stderr)
     return candidates[_prompt_choice(len(candidates)) - 1]
 
 
