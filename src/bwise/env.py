@@ -51,12 +51,12 @@ def materialize(
         value = field.get("value") or ""
 
         if value == PLACEHOLDER:
-            warn(f"field {name!r} is still a placeholder ({PLACEHOLDER}) — fill it in the vault")
+            warn(f"field {name!r} is still a placeholder ({PLACEHOLDER}) — fill it in")
 
         if field.get("type") == LINKED_FIELD_TYPE:
             warn(f"skipping linked field {name!r} (no literal value)")
         elif name.startswith(FILE_PREFIX):
-            path = name[len(FILE_PREFIX):].strip()
+            path = name[len(FILE_PREFIX) :].strip()
             if path:
                 write_file(path, value)
             else:

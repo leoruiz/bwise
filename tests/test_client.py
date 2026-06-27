@@ -46,6 +46,54 @@ def test_get_item_not_found(monkeypatch):
         client.get_item("a")
 
 
+class _FakeResp:
+    def __init__(self, payload):
+        self._b = json.dumps(payload).encode()
+
+    def read(self, *a):
+        return self._b
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def test_request_success(monkeypatch):
+    monkeypatch.setattr(
+        client.urllib.request, "urlopen", lambda *a, **k: _FakeResp({"success": True})
+    )
+    assert client.request("POST", "/x", {"a": 1}) == {"success": True}
+
+
+def test_request_http_error_non_json_body(monkeypatch):
+    def fake_urlopen(*a, **k):
+        raise urllib.error.HTTPError(
+            "http://x", 500, "err", {}, io.BytesIO(b"not json")
+        )
+
+    monkeypatch.setattr(client.urllib.request, "urlopen", fake_urlopen)
+    with pytest.raises(BwError, match="HTTP 500"):
+        client.request("GET", "/x")
+
+
+def test_status_parses_template(monkeypatch):
+    payload = {"data": {"template": {"status": "unlocked"}}}
+    monkeypatch.setattr(client, "request", lambda *a, **k: payload)
+    assert client.status() == "unlocked"
+
+
+def test_put_item_calls_check(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(client, "request", lambda *a, **k: {"success": True})
+    assert client.put_item({"id": "1"}) == {"success": True}
+
+
+def test_extract_token_reads_notes(monkeypatch):
+    assert client.extract_token({"notes": "  n  "}) == "n"
+
+
 def _http_error(code, body):
     return urllib.error.HTTPError(
         "http://x", code, "err", {}, io.BytesIO(json.dumps(body).encode())

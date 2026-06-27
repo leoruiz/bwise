@@ -41,6 +41,7 @@ bwise lock
 bwise status [--quiet]   # exit 0/1/2/3 = unlocked/locked/unauthenticated/unreachable
 bwise get  <item>        # raw item JSON
 bwise get  <item> --notes
+bwise token <item>       # the item's secret (password / field / notes)
 bwise env  <item>        # `export` lines + @file: secrets
 bwise set-notes <item>   # replace notes from stdin
 ```

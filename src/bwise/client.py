@@ -27,14 +27,19 @@ class BwError(RuntimeError):
     """A ``bw serve`` request failed (unreachable, locked, not found, ...)."""
 
 
-def request(method: str, path: str, body: dict | None = None, timeout: int = TIMEOUT_S) -> dict:
+def request(
+    method: str, path: str, body: dict | None = None, timeout: int = TIMEOUT_S
+) -> dict:
     """Call the daemon and return parsed JSON, even on a 4xx (locked) response."""
     data = json.dumps(body).encode() if body is not None else None
-    req = urllib.request.Request(
-        BASE + path, data=data, method=method, headers={"Content-Type": "application/json"}
+    req = urllib.request.Request(  # noqa: S310  (BW_SERVE_URL is local http(s) config)
+        BASE + path,
+        data=data,
+        method=method,
+        headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310  (loopback http)
             return json.load(resp)
     except urllib.error.HTTPError as exc:
         try:
@@ -42,14 +47,18 @@ def request(method: str, path: str, body: dict | None = None, timeout: int = TIM
         except (json.JSONDecodeError, ValueError):
             raise BwError(f"bw serve returned HTTP {exc.code}") from exc
     except urllib.error.URLError as exc:
-        raise BwError(f"cannot reach bw serve at {BASE} ({exc}); is the daemon running?") from exc
+        raise BwError(
+            f"cannot reach bw serve at {BASE} ({exc}); is the daemon running?"
+        ) from exc
 
 
 def check(res: dict) -> dict:
-    """Raise :class:`BwError` if the daemon reported failure (locked vault gets a hint)."""
+    """Raise :class:`BwError` if the daemon reported failure (locked → hint)."""
     if not res.get("success"):
         message = res.get("message", "request failed")
-        raise BwError("vault is locked — run `bwise up`" if "lock" in message.lower() else message)
+        raise BwError(
+            "vault is locked — run `bwise up`" if "lock" in message.lower() else message
+        )
     return res
 
 
@@ -73,7 +82,7 @@ def put_item(item: dict) -> dict:
 
 
 def extract_token(item: dict) -> str:
-    """Pull a secret from an item: password field, else first custom field, else notes."""
+    """Pull a secret: password field, else first custom field, else notes."""
     password = (item.get("login") or {}).get("password")
     if password:
         return password

@@ -16,9 +16,6 @@ Repository = "https://github.com/leoruiz/bwise"
 [project.scripts]
 bwise = "bwise.cli:main"
 
-[dependency-groups]
-dev = ["pytest>=8", "ruff>=0.6"]
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -27,7 +24,90 @@ build-backend = "hatchling.build"
 packages = ["src/bwise"]
 
 [tool.ruff]
-line-length = 100
+line-length = 88
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B"]
+extend-select = [
+    "A",    # flake8-builtins
+    "C4",   # flake8-comprehensions
+    "E",    # pycodestyle
+    "W",    # pycodestyle
+    "F",    # Pyflakes
+    "S",    # flake8-bandit
+    "ISC",  # flake8-implicit-str-concat
+    "LOG",  # flake8-logging
+    "G",    # flake8-logging-format
+    "PIE",  # flake8-pie
+    "T20",  # flake8-print
+    "Q",    # flake8-quotes
+    "RSE",  # flake8-raise
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "I",    # isort
+    "C90",  # mccabe
+    "N",    # pep8-naming
+    "PERF", # Perflint
+    "PLE",  # Pylint error
+    "PLR",  # Pylint refactor
+    "PLW",  # Pylint warning
+    "TRY",  # tryceratops
+]
+ignore = [
+    "TRY003",  # long messages outside exception class — our errors are user-facing
+    "S603",    # subprocess call — pinentry is invoked with a resolved program
+    "S607",    # partial executable path — pinentry program name is intentional
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+case-sensitive = true
+known-first-party = ["bwise"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/bwise/cli.py" = ["T20"]  # the CLI's job is to print to stdout
+"tests/**/*.py" = [
+    "S101",    # assert allowed in tests
+    "S105",    # hardcoded passwords in test data
+    "S106",    # hardcoded passwords in function args
+    "S108",    # /tmp paths in test data
+    "PLR2004", # magic values in assertions
+    "PLW0108", # unnecessary lambda
+    "F841",    # unused variable (test setup)
+]
+
+[tool.coverage.run]
+source = ["bwise"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover"]
+show_missing = true
+fail_under = 100
+
+[tool.deptry]
+known_first_party = ["bwise"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "deptry>=0.25.1",
+    "poethepoet>=0.46.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.18",
+]
+
+[tool.poe.tasks]
+pytest = "pytest tests/ -v"
+cov = "pytest --cov=bwise --cov-report=term-missing tests/"
+cov-gate = "pytest --cov=bwise --cov-report=term-missing --cov-fail-under=100 tests/"
+lint = "ruff check src/ tests/"
+fmt = "ruff format src/ tests/"
+typecheck = { shell = "uvx ty check src/bwise/" }
+deps = { shell = "uv run deptry src/bwise/" }
+audit = { shell = "uv audit --preview-features audit-command" }
+test = ["lint", "typecheck", "deps", "audit", "cov-gate"]
+fix = ["fmt", "lint"]

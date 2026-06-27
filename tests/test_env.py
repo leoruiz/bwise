@@ -45,7 +45,9 @@ def test_non_identifier_name_is_skipped_with_warning():
 
 
 def test_linked_field_is_skipped():
-    exports, warnings, _ = collect([{"name": "X", "value": "", "type": env.LINKED_FIELD_TYPE}])
+    exports, warnings, _ = collect(
+        [{"name": "X", "value": "", "type": env.LINKED_FIELD_TYPE}]
+    )
     assert exports == []
     assert any("linked field" in w for w in warnings)
 
@@ -61,6 +63,12 @@ def test_write_secret_file_is_mode_600(tmp_path):
     env.write_secret_file(str(target), "value")
     assert target.read_text() == "value"
     assert (target.stat().st_mode & 0o777) == 0o600
+
+
+def test_write_secret_file_no_parent_dir(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    env.write_secret_file("bare", "v")
+    assert (tmp_path / "bare").read_text() == "v"
 
 
 def test_write_secret_file_refuses_symlink(tmp_path):

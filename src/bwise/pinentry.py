@@ -14,6 +14,7 @@ import subprocess
 
 # In preference order; override with $BWISE_PINENTRY.
 _CANDIDATES = ("pinentry-mac", "pinentry")
+_ASSUAN_PERCENT = 0x25  # '%' introduces a %XX escape
 
 
 def _unquote_assuan(text: str) -> str:
@@ -22,7 +23,7 @@ def _unquote_assuan(text: str) -> str:
     out = bytearray()
     i = 0
     while i < len(raw):
-        if raw[i] == 0x25 and i + 2 < len(raw):  # '%XX'
+        if raw[i] == _ASSUAN_PERCENT and i + 2 < len(raw):
             out.append(int(raw[i + 1 : i + 3], 16))
             i += 3
         else:
@@ -49,7 +50,12 @@ def _pinentry_prompt(program: str) -> str | None:
         "GETPIN\nBYE\n"
     )
     proc = subprocess.run(
-        [program], input=commands, capture_output=True, text=True, timeout=300
+        [program],
+        input=commands,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
     )
     for line in proc.stdout.splitlines():
         if line.startswith("D "):

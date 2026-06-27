@@ -13,7 +13,7 @@ import cyclopts
 from loguru import logger
 
 from . import env as env_mod
-from .client import BwError, get_item, put_item, request, status
+from .client import BwError, extract_token, get_item, put_item, request, status
 from .pinentry import prompt_master_password
 
 logger.remove()
@@ -56,12 +56,16 @@ def _default() -> None:
 def lock() -> None:
     """Lock the vault."""
     result = request("POST", "/lock")
-    logger.info("vault locked" if result.get("success") else result.get("message", "lock failed"))
+    logger.info(
+        "vault locked"
+        if result.get("success")
+        else result.get("message", "lock failed")
+    )
 
 
 @app.command(name="status")
 def status_cmd(*, quiet: bool = False) -> None:
-    """Print the vault status; exit 0/1/2 unlocked/locked/unauthenticated, 3 unreachable."""
+    """Print the vault status; exit 0/1/2/3 = unlocked/locked/unauth/unreachable."""
     try:
         state = status()
     except BwError:
@@ -97,6 +101,12 @@ def get(item: str, /, *, notes: bool = False) -> None:
         print(json.dumps(data, indent=2))
 
 
+@app.command
+def token(item: str, /) -> None:
+    """Print ITEM's secret: password, else first custom field, else notes."""
+    print(extract_token(get_item(item)))
+
+
 @app.command(name="set-notes")
 def set_notes(item: str, /) -> None:
     """Replace ITEM's notes with stdin, preserving its other fields."""
@@ -113,5 +123,5 @@ def main() -> None:
         sys.exit(2)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()
