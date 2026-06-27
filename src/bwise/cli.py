@@ -35,6 +35,7 @@ app = cyclopts.App(name="bwise", help=__doc__)
 EXIT_STATUS = {"unlocked": 0, "locked": 1, "unauthenticated": 2}
 ITEM_TYPES = {"login": 1, "note": 2, "card": 3, "identity": 4}
 ItemType = Literal["login", "note", "card", "identity"]
+TypeOption = Annotated[ItemType | None, cyclopts.Parameter(name="--type")]
 
 
 def _describe(item: dict) -> str:
@@ -69,12 +70,15 @@ def _pick(exc: AmbiguousItemError) -> dict:
     return candidates[_prompt_choice(len(candidates)) - 1]
 
 
-def _resolve_item(name: str) -> dict:
-    """Like :func:`get_item`, but interactively disambiguates duplicate names."""
+def _resolve_item(name: str, item_type: str | None = None) -> dict:
+    """Resolve NAME (id or name); disambiguate duplicates, guard the type if given."""
     try:
-        return get_item(name)
+        item = get_item(name)
     except AmbiguousItemError as exc:
-        return _pick(exc)
+        item = _pick(exc)
+    if item_type and item.get("type") != ITEM_TYPES[item_type]:
+        raise BwError(f"item {name!r} is not a {item_type}")
+    return item
 
 
 def _unlock() -> None:
@@ -127,9 +131,9 @@ def status_cmd(*, quiet: bool = False) -> None:
 
 
 @app.command(name="env")
-def env_cmd(item: str, /) -> None:
+def env_cmd(item: str, /, *, item_type: TypeOption = None) -> None:
     """Print ITEM's custom fields as `export` lines and write any @file: secrets."""
-    fields = _resolve_item(item).get("fields") or []
+    fields = _resolve_item(item, item_type).get("fields") or []
     if not fields:
         logger.warning(f"item {item!r} has no custom fields")
 
@@ -143,28 +147,25 @@ def env_cmd(item: str, /) -> None:
 
 
 @app.command
-def get(item: str, /) -> None:
+def get(item: str, /, *, item_type: TypeOption = None) -> None:
     """Print ITEM as JSON."""
-    print(json.dumps(_resolve_item(item), indent=2))
+    print(json.dumps(_resolve_item(item, item_type), indent=2))
 
 
 @app.command(name="get-notes")
-def get_notes(item: str, /) -> None:
+def get_notes(item: str, /, *, item_type: TypeOption = None) -> None:
     """Print ITEM's notes field."""
-    sys.stdout.write(_resolve_item(item).get("notes") or "")
+    sys.stdout.write(_resolve_item(item, item_type).get("notes") or "")
 
 
 @app.command
-def token(item: str, /) -> None:
+def token(item: str, /, *, item_type: TypeOption = None) -> None:
     """Print ITEM's secret: password, else first custom field, else notes."""
-    print(extract_token(_resolve_item(item)))
+    print(extract_token(_resolve_item(item, item_type)))
 
 
 @app.command(name="list")
-def list_items(
-    *,
-    item_type: Annotated[ItemType | None, cyclopts.Parameter(name="--type")] = None,
-) -> None:
+def list_items(*, item_type: TypeOption = None) -> None:
     """Print vault item names; --type filters to login/note/card/identity."""
     wanted = ITEM_TYPES[item_type] if item_type else None
     res = check(request("GET", "/list/object/items"))
@@ -192,9 +193,9 @@ def doctor() -> None:
 
 
 @app.command(name="set-notes")
-def set_notes(item: str, /) -> None:
+def set_notes(item: str, /, *, item_type: TypeOption = None) -> None:
     """Replace ITEM's notes with stdin, preserving its other fields."""
-    data = _resolve_item(item)
+    data = _resolve_item(item, item_type)
     data["notes"] = sys.stdin.read()
     put_item(data)
 

@@ -153,6 +153,17 @@ def test_resolve_item_passthrough(monkeypatch):
     assert cli._resolve_item("x") == {"id": "1"}
 
 
+def test_resolve_item_type_guard_passes(monkeypatch):
+    monkeypatch.setattr(cli, "get_item", lambda n: {"type": 2, "id": "1"})
+    assert cli._resolve_item("x", "note")["id"] == "1"
+
+
+def test_resolve_item_type_guard_rejects(monkeypatch):
+    monkeypatch.setattr(cli, "get_item", lambda n: {"type": 1})
+    with pytest.raises(BwError, match="is not a note"):
+        cli._resolve_item("x", "note")
+
+
 def test_resolve_item_disambiguates_on_tty(monkeypatch, capsys):
     cands = [
         {"id": "id-aaa", "login": {"username": "alice@x"}},
