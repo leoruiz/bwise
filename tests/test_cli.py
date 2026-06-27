@@ -197,11 +197,27 @@ def test_prompt_choice_eof_raises(monkeypatch):
 
 
 def test_list_items(monkeypatch, capsys):
-    items = [{"name": "a"}, {"name": ""}, {"name": "b"}]
+    items = [
+        {"name": "login1", "type": 1},
+        {"name": "note1", "type": 2},
+        {"name": "", "type": 2},
+        {"name": "note2", "type": 2},
+    ]
     res = {"success": True, "data": {"data": items}}
     monkeypatch.setattr(cli, "request", lambda *a, **k: res)
     cli.list_items()
-    assert capsys.readouterr().out.split() == ["a", "b"]
+    assert capsys.readouterr().out.split() == ["login1", "note1", "note2"]
+
+
+def test_list_items_filters_by_type(monkeypatch, capsys):
+    items = [{"name": "login1", "type": 1}, {"name": "note1", "type": 2}]
+    res = {"success": True, "data": {"data": items}}
+    monkeypatch.setattr(cli, "request", lambda *a, **k: res)
+    cli.list_items(item_type="note")
+    assert capsys.readouterr().out.split() == ["note1"]
+    monkeypatch.setattr(cli, "request", lambda *a, **k: res)
+    cli.list_items(item_type="login")
+    assert capsys.readouterr().out.split() == ["login1"]
 
 
 def test_completion_prints_fish_script(capsys):

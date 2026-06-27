@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Literal
+from typing import Annotated, Literal
 
 import cyclopts
 from loguru import logger
@@ -33,6 +33,8 @@ logger.add(sys.stderr, format="bwise: {message}", level="INFO")
 app = cyclopts.App(name="bwise", help=__doc__)
 
 EXIT_STATUS = {"unlocked": 0, "locked": 1, "unauthenticated": 2}
+ITEM_TYPES = {"login": 1, "note": 2, "card": 3, "identity": 4}
+ItemType = Literal["login", "note", "card", "identity"]
 
 
 def _describe(item: dict) -> str:
@@ -159,10 +161,16 @@ def token(item: str, /) -> None:
 
 
 @app.command(name="list")
-def list_items() -> None:
-    """Print the names of all vault items, one per line."""
+def list_items(
+    *,
+    item_type: Annotated[ItemType | None, cyclopts.Parameter(name="--type")] = None,
+) -> None:
+    """Print vault item names; --type filters to login/note/card/identity."""
+    wanted = ITEM_TYPES[item_type] if item_type else None
     res = check(request("GET", "/list/object/items"))
     for item in res["data"]["data"]:
+        if wanted is not None and item.get("type") != wanted:
+            continue
         if name := item.get("name"):
             print(name)
 
