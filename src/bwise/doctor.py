@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import shutil
 
-from . import __version__
-from .client import BASE, BwError, status
+from . import __version__, serve
+from .client import BASE, status
+from .pinentry import find_pinentry
 
 OK, WARN, FAIL = "ok", "warn", "fail"
 GLYPH = {OK: "✓", WARN: "!", FAIL: "✗"}
@@ -23,16 +24,26 @@ def run_checks() -> list[tuple[str, str]]:
         if shutil.which("bw")
         else (FAIL, "bw CLI not found — install the Bitwarden CLI")
     )
-    try:
-        state = status()
-    except BwError:
+    pin_msg = "no pinentry — `bwise up` uses getpass; install pinentry-mac"
+    results.append(
+        (OK, "pinentry available for secure prompts")
+        if find_pinentry()
+        else (WARN, pin_msg)
+    )
+    state = serve.probe()
+    if state == serve.DOWN:
         results.append((FAIL, f"bw serve unreachable at {BASE} — start the daemon"))
         return results
+    if state == serve.STUCK:
+        msg = f"bw serve at {BASE} is not responding — restart it (`bwise up` heals)"
+        results.append((FAIL, msg))
+        return results
     results.append((OK, f"bw serve reachable at {BASE}"))
-    if state == "unlocked":
+    vault = status()
+    if vault == "unlocked":
         results.append((OK, "vault unlocked"))
-    elif state == "locked":
+    elif vault == "locked":
         results.append((WARN, "vault locked — run `bwise up`"))
     else:
-        results.append((FAIL, f"vault {state} — run `bw login`"))
+        results.append((FAIL, f"vault {vault} — run `bw login`"))
     return results
