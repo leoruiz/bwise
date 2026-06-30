@@ -29,6 +29,7 @@ def patch_request(monkeypatch):
 @pytest.fixture(autouse=True)
 def _stub_unlock_env(monkeypatch):
     monkeypatch.setattr(cli.serve_mod, "ensure_healthy", lambda report=None: "healthy")
+    monkeypatch.setattr(cli, "find_pinentry", lambda: "pinentry")
 
 
 def test_unlock_already_unlocked(monkeypatch, patch_request):
@@ -49,6 +50,16 @@ def test_unlock_happy_path(monkeypatch, patch_request):
     cli._default()
     assert ("POST", "/unlock", {"password": "pw"}) in patch_request
     assert ("POST", "/sync", None) in patch_request
+
+
+def test_unlock_warns_without_pinentry(monkeypatch, patch_request):
+    monkeypatch.setattr(cli, "status", lambda: "locked")
+    monkeypatch.setattr(cli, "find_pinentry", lambda: None)
+    monkeypatch.setattr(cli, "prompt_master_password", lambda: "pw")
+    warnings = []
+    monkeypatch.setattr(cli.logger, "warning", warnings.append)
+    cli.up()
+    assert any("no pinentry" in w for w in warnings)
 
 
 def test_unlock_no_password_raises(monkeypatch):

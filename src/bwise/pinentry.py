@@ -32,7 +32,8 @@ def _unquote_assuan(text: str) -> str:
     return out.decode(errors="replace")
 
 
-def _find_pinentry() -> str | None:
+def find_pinentry() -> str | None:
+    """Return the pinentry program to use, or ``None`` if none is installed."""
     override = os.environ.get("BWISE_PINENTRY")
     if override:
         return override if shutil.which(override) else None
@@ -67,7 +68,7 @@ def _pinentry_prompt(program: str) -> str | None:
 
 def prompt_master_password() -> str | None:
     """Prompt for the master password; return ``None`` if cancelled/empty."""
-    program = _find_pinentry()
+    program = find_pinentry()
     if program:
         return _pinentry_prompt(program)
     return getpass.getpass("Bitwarden master password: ") or None

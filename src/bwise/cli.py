@@ -26,7 +26,7 @@ from .client import (
     request,
     status,
 )
-from .pinentry import prompt_master_password
+from .pinentry import find_pinentry, prompt_master_password
 
 logger.remove()
 logger.add(sys.stderr, format="bwise: {message}", level="INFO")
@@ -90,6 +90,10 @@ def _unlock() -> None:
     if state == "unlocked":
         logger.info("already unlocked")
         return
+    if find_pinentry() is None:
+        logger.warning(
+            "no pinentry found — falling back to getpass; install pinentry-mac"
+        )
     password = prompt_master_password()
     if not password:
         raise BwError("no master password entered")
