@@ -26,6 +26,11 @@ def patch_request(monkeypatch):
     return calls
 
 
+@pytest.fixture(autouse=True)
+def _stub_unlock_env(monkeypatch):
+    monkeypatch.setattr(cli.serve_mod, "ensure_healthy", lambda report=None: "healthy")
+
+
 def test_unlock_already_unlocked(monkeypatch, patch_request):
     monkeypatch.setattr(cli, "status", lambda: "unlocked")
     cli.up()  # no prompt, no request

@@ -14,7 +14,7 @@ from typing import Annotated, Literal
 import cyclopts
 from loguru import logger
 
-from . import doctor as doctor_mod, env as env_mod
+from . import doctor as doctor_mod, env as env_mod, serve as serve_mod
 from .client import (
     AmbiguousItemError,
     BwError,
@@ -83,6 +83,7 @@ def _resolve_item(name: str, item_type: str | None = None) -> dict:
 
 
 def _unlock() -> None:
+    serve_mod.ensure_healthy(report=logger.warning)
     state = status()
     if state == "unauthenticated":
         raise BwError("bw is not logged in — run `bw login` first")
