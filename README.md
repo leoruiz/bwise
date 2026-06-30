@@ -25,10 +25,24 @@ ergonomic layer on top:
 ## Install
 
 ```sh
+brew install leoruiz/bwise/bwise          # once tapped (see below)
+# or with uv:
 uv tool install git+https://github.com/leoruiz/bwise
 # or, for local development:
 uv tool install --editable .
 ```
+
+To install via Homebrew, tap this repo first (it isn't named `homebrew-bwise`,
+so pass the URL explicitly):
+
+```sh
+brew tap leoruiz/bwise https://github.com/leoruiz/bwise
+brew install bwise
+```
+
+The Homebrew formula pulls in `pinentry-mac` automatically. With the other
+install methods, install a pinentry program yourself (macOS: `brew install
+pinentry-mac`) — otherwise `bwise up` falls back to a plain `getpass` prompt.
 
 Requires the official [`bw` CLI](https://bitwarden.com/help/cli/) running in serve
 mode (e.g. `bw serve --port 8087`).
@@ -88,6 +102,13 @@ token = bwise.extract_token(item)
 |--------------------|--------------------------|----------------------------------|
 | `BW_SERVE_URL`     | `http://localhost:8087`  | daemon base URL                  |
 | `BWISE_PINENTRY`   | auto (`pinentry-mac`…)   | pinentry program for `bwise up`  |
+| `BWISE_SERVE_RESTART` | _(unset)_             | command to restart a dead/stuck `bw serve` |
+
+When set, `BWISE_SERVE_RESTART` lets `bwise up` self-heal: if the daemon is
+unreachable or wedged (e.g. returning HTTP 500), bwise runs this command and
+waits for it to come back before unlocking. bwise doesn't own the daemon's
+lifecycle, so the restart mechanism is left to you — e.g. a `launchctl kickstart
+-k` of your `bw serve` service.
 
 ## Security model
 
