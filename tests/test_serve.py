@@ -44,32 +44,29 @@ def test_probe_down_on_refused(monkeypatch):
     assert serve.probe() == serve.DOWN
 
 
-def test_restart_without_command_raises(monkeypatch):
-    monkeypatch.delenv(serve.RESTART_ENV, raising=False)
-    with pytest.raises(BwError, match="no restart command"):
-        serve.restart()
+def _completed(returncode=0, stdout="", stderr=""):
+    return subprocess.CompletedProcess([], returncode, stdout=stdout, stderr=stderr)
 
 
-def test_restart_runs_command(monkeypatch):
-    monkeypatch.setenv(serve.RESTART_ENV, "do-restart")
+def test_restart_kickstarts_serve_agent(monkeypatch):
     seen = {}
 
-    def fake_run(command, **kw):
-        seen["command"] = command
-        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+    def fake_kickstart(label, *, kill=False):
+        seen["label"] = label
+        seen["kill"] = kill
+        return _completed(0)
 
-    monkeypatch.setattr(serve.subprocess, "run", fake_run)
+    monkeypatch.setattr(serve.agents, "kickstart", fake_kickstart)
     serve.restart()
-    assert seen["command"] == "do-restart"
+    assert seen["label"] == serve.agents.SERVE_LABEL
+    assert seen["kill"] is True
 
 
 def test_restart_failure_raises(monkeypatch):
-    monkeypatch.setenv(serve.RESTART_ENV, "do-restart")
-    monkeypatch.setattr(
-        serve.subprocess,
-        "run",
-        lambda *a, **k: subprocess.CompletedProcess(a, 1, stdout="", stderr="boom"),
-    )
+    def fake_kickstart(label, *, kill=False):
+        return _completed(1, stderr="boom")
+
+    monkeypatch.setattr(serve.agents, "kickstart", fake_kickstart)
     with pytest.raises(BwError, match="boom"):
         serve.restart()
 

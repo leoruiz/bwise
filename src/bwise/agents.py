@@ -22,6 +22,7 @@ from .client import BASE, BwError
 
 LAUNCH_AGENTS = Path.home() / "Library" / "LaunchAgents"
 SYNC_INTERVAL_S = 900
+SERVE_LABEL = "com.bwise.serve"
 
 Runner = Callable[[list[str]], "subprocess.CompletedProcess[str]"]
 
@@ -82,7 +83,7 @@ def _serve_agent() -> Agent:
     host, port = parsed.hostname or "localhost", parsed.port or 8087
     return Agent(
         "serve",
-        "com.bwise.serve",
+        SERVE_LABEL,
         [_which("bw"), "serve", "--hostname", host, "--port", str(port)],
         keep_alive=True,
         reload_safe=False,  # restarting bw serve re-locks the vault
@@ -126,6 +127,17 @@ def build(name: str) -> Agent:
         ) from None
 
 
+def kickstart(
+    label: str, *, kill: bool = False, run: Runner = _run
+) -> subprocess.CompletedProcess[str]:
+    """Start (or, with ``kill``, force-restart) a launchd label via a fixed argv."""
+    args = ["launchctl", "kickstart"]
+    if kill:
+        args.append("-k")
+    args.append(f"{_domain()}/{label}")
+    return run(args)
+
+
 def is_loaded(agent: Agent, *, run: Runner = _run) -> bool:
     return run(["launchctl", "print", f"{_domain()}/{agent.label}"]).returncode == 0
 
@@ -148,7 +160,7 @@ def install(
     if result.returncode != 0:
         detail = (result.stderr or result.stdout).strip() or "no output"
         raise BwError(f"bootstrap {agent.label} failed: {detail}")
-    run(["launchctl", "kickstart", f"{_domain()}/{agent.label}"])
+    kickstart(agent.label, run=run)
     return "loaded"
 
 
@@ -162,8 +174,3 @@ def uninstall(
         path.unlink()
         return "removed"
     return "not installed"
-
-
-def restart(agent: Agent, *, run: Runner = _run) -> None:
-    """Kickstart the agent (used by self-heal for a known, bwise-owned label)."""
-    run(["launchctl", "kickstart", "-k", f"{_domain()}/{agent.label}"])

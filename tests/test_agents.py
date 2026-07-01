@@ -142,9 +142,16 @@ def test_is_loaded_true_false():
     )
 
 
-def test_restart_kickstarts_label():
+def test_kickstart_starts_label():
     run = _FakeRunner()
-    agents.restart(agents.build("serve"), run=run)
+    agents.kickstart("com.bwise.serve", run=run)
+    expected = f"gui/{agents.os.getuid()}/com.bwise.serve"
+    assert run.calls[0] == ["launchctl", "kickstart", expected]
+
+
+def test_kickstart_kill_adds_flag():
+    run = _FakeRunner()
+    agents.kickstart(agents.SERVE_LABEL, kill=True, run=run)
     assert run.calls[0][:3] == ["launchctl", "kickstart", "-k"]
 
 

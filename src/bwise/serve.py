@@ -1,23 +1,20 @@
 """Health probe and self-heal for the local ``bw serve`` daemon.
 
-bwise is a client, not the daemon's supervisor — something else (a launchd or
-systemd service) starts ``bw serve``. When the daemon is dead or wedged, bwise
-restarts it by running the command in ``$BWISE_SERVE_RESTART``, keeping the
-machine-specific mechanism out of this package.
+When the daemon is dead or wedged, :func:`ensure_healthy` restarts it. bwise owns
+the daemon's launchd agent (:data:`bwise.agents.SERVE_LABEL`), so the restart is a
+fixed ``launchctl kickstart`` — no shell, no user-supplied command.
 """
 
 from __future__ import annotations
 
-import os
-import subprocess
 import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
 
+from . import agents
 from .client import BASE, BwError
 
-RESTART_ENV = "BWISE_SERVE_RESTART"
 PROBE_TIMEOUT_S = 2
 RECOVER_TIMEOUT_S = 15
 RECOVER_POLL_S = 0.5
@@ -40,19 +37,14 @@ def probe(timeout: int = PROBE_TIMEOUT_S) -> str:
 
 
 def restart() -> None:
-    """Run ``$BWISE_SERVE_RESTART`` to restart the daemon; raise if unset or failing."""
-    command = os.environ.get(RESTART_ENV)
-    if not command:
-        raise BwError(
-            "bw serve needs a restart but no restart command is configured; "
-            f"restart it yourself or set ${RESTART_ENV}"
-        )
-    result = subprocess.run(  # noqa: S602  (user-configured restart command)
-        command, shell=True, capture_output=True, text=True, check=False
-    )
+    """Force-restart the bwise-managed ``bw serve`` agent; raise on failure."""
+    result = agents.kickstart(agents.SERVE_LABEL, kill=True)
     if result.returncode != 0:
         detail = (result.stderr or result.stdout).strip() or "no output"
-        raise BwError(f"${RESTART_ENV} failed (exit {result.returncode}): {detail}")
+        raise BwError(
+            f"could not restart {agents.SERVE_LABEL} ({detail}); "
+            "install it with `bwise agent install serve`"
+        )
 
 
 def ensure_healthy(report: Callable[[str], None] = lambda _message: None) -> str:
