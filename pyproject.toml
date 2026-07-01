@@ -76,6 +76,7 @@ known-first-party = ["bwise"]
     "S108",    # /tmp paths in test data
     "PLR2004", # magic values in assertions
     "PLW0108", # unnecessary lambda
+    "PLR0913", # many arguments — test helpers take several knobs
     "F841",    # unused variable (test setup)
 ]
 

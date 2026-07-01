@@ -23,6 +23,9 @@ from .client import BASE, BwError
 LAUNCH_AGENTS = Path.home() / "Library" / "LaunchAgents"
 SYNC_INTERVAL_S = 900
 SERVE_LABEL = "com.bwise.serve"
+SYNC_LABEL = "com.bwise.sync"
+MENUBAR_LABEL = "com.bwise.menubar"
+LABELS = {"serve": SERVE_LABEL, "sync": SYNC_LABEL, "menubar": MENUBAR_LABEL}
 
 Runner = Callable[[list[str]], "subprocess.CompletedProcess[str]"]
 
@@ -93,7 +96,7 @@ def _serve_agent() -> Agent:
 def _sync_agent() -> Agent:
     return Agent(
         "sync",
-        "com.bwise.sync",
+        SYNC_LABEL,
         [_which("bwise"), "sync"],
         start_interval=SYNC_INTERVAL_S,
     )
@@ -102,7 +105,7 @@ def _sync_agent() -> Agent:
 def _menubar_agent() -> Agent:
     return Agent(
         "menubar",
-        "com.bwise.menubar",
+        MENUBAR_LABEL,
         [_which("bwise-menubar")],
         keep_alive=True,
         environment={"PATH": _menubar_path_env()},
@@ -138,8 +141,13 @@ def kickstart(
     return run(args)
 
 
+def loaded(label: str, *, run: Runner = _run) -> bool:
+    """Whether a launchd label is currently loaded (by label, no path resolution)."""
+    return run(["launchctl", "print", f"{_domain()}/{label}"]).returncode == 0
+
+
 def is_loaded(agent: Agent, *, run: Runner = _run) -> bool:
-    return run(["launchctl", "print", f"{_domain()}/{agent.label}"]).returncode == 0
+    return loaded(agent.label, run=run)
 
 
 def install(

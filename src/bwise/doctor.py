@@ -1,19 +1,35 @@
-"""Health checks for the bw CLI, the ``bw serve`` daemon, and the vault.
+"""Health checks for the bw CLI, the ``bw serve`` daemon, the vault, and the
+bwise launchd agents.
 
 Generic, machine-agnostic checks that belong in the package (as opposed to the
-dotfiles ``bw-doctor``, which also checks LaunchAgents, sleepwatcher, and certs).
+dotfiles ``bw-doctor``, which also checks sleepwatcher).
 """
 
 from __future__ import annotations
 
 import shutil
+import sys
 
-from . import __version__, serve
+from . import __version__, agents, serve
 from .client import BASE, status
 from .pinentry import find_pinentry
 
 OK, WARN, FAIL = "ok", "warn", "fail"
 GLYPH = {OK: "✓", WARN: "!", FAIL: "✗"}
+
+
+def _agent_checks() -> list[tuple[str, str]]:
+    """One line per bwise agent (macOS only); unloaded is a warning, not a failure."""
+    if sys.platform != "darwin":
+        return []
+    lines: list[tuple[str, str]] = []
+    for name, label in agents.LABELS.items():
+        if agents.loaded(label):
+            lines.append((OK, f"agent {label} loaded"))
+        else:
+            hint = f"agent {label} not loaded — `bwise agent install {name}`"
+            lines.append((WARN, hint))
+    return lines
 
 
 def run_checks() -> list[tuple[str, str]]:
@@ -46,4 +62,5 @@ def run_checks() -> list[tuple[str, str]]:
         results.append((WARN, "vault locked — run `bwise up`"))
     else:
         results.append((FAIL, f"vault {vault} — run `bw login`"))
+    results.extend(_agent_checks())
     return results

@@ -5,10 +5,20 @@ def _levels(results):
     return [level for level, _ in results]
 
 
-def _patch(monkeypatch, *, bw="/usr/bin/bw", pinentry="pinentry", probe="healthy"):
+def _patch(
+    monkeypatch,
+    *,
+    bw="/usr/bin/bw",
+    pinentry="pinentry",
+    probe="healthy",
+    platform="linux",
+    loaded=True,
+):
     monkeypatch.setattr(doctor.shutil, "which", lambda p: bw)
     monkeypatch.setattr(doctor, "find_pinentry", lambda: pinentry)
     monkeypatch.setattr(doctor.serve, "probe", lambda: probe)
+    monkeypatch.setattr(doctor.sys, "platform", platform)
+    monkeypatch.setattr(doctor.agents, "loaded", lambda label: loaded)
 
 
 def test_all_healthy(monkeypatch):
@@ -60,3 +70,21 @@ def test_vault_unauthenticated_fails(monkeypatch):
     results = doctor.run_checks()
     assert results[-1][0] == doctor.FAIL
     assert "bw login" in results[-1][1]
+
+
+def test_agents_checked_and_ok_on_macos(monkeypatch):
+    _patch(monkeypatch, platform="darwin", loaded=True)
+    monkeypatch.setattr(doctor, "status", lambda: "unlocked")
+    results = doctor.run_checks()
+    assert _levels(results) == [doctor.OK] * 8  # 5 base + 3 agents
+    assert any("agent com.bwise.serve loaded" in m for _, m in results)
+
+
+def test_agent_not_loaded_warns_on_macos(monkeypatch):
+    _patch(monkeypatch, platform="darwin", loaded=False)
+    monkeypatch.setattr(doctor, "status", lambda: "unlocked")
+    results = doctor.run_checks()
+    agent_lines = results[5:]
+    assert len(agent_lines) == 3
+    assert all(level == doctor.WARN for level, _ in agent_lines)
+    assert any("bwise agent install serve" in m for _, m in agent_lines)
