@@ -7,6 +7,13 @@ from bwise import agents
 from bwise.client import BwError
 
 
+@pytest.fixture(autouse=True)
+def _stub_which(monkeypatch):
+    """Resolve program lookups to fake paths so builds don't need real binaries
+    (CI has no bw / bwise-menubar on PATH)."""
+    monkeypatch.setattr(agents.shutil, "which", lambda name: f"/usr/bin/{name}")
+
+
 def _completed(returncode=0, stdout="", stderr=""):
     return subprocess.CompletedProcess([], returncode, stdout=stdout, stderr=stderr)
 
