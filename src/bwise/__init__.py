@@ -21,10 +21,15 @@ from .client import (
     status,
 )
 
-try:
-    __version__ = version("bwise")
-except PackageNotFoundError:  # pragma: no cover
-    __version__ = "0+unknown"
+
+def _resolve_version() -> str:
+    try:
+        return version("bwise")
+    except PackageNotFoundError:
+        return "0+unknown"
+
+
+__version__ = _resolve_version()
 
 __all__ = [
     "BASE",
