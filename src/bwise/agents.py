@@ -81,9 +81,18 @@ def _which(name: str) -> str:
     return path
 
 
-def _menubar_path_env() -> str:
+def _agent_path_env() -> str:
+    """PATH for GUI agents that shell out to bwise/pinentry. launchd hands a
+    minimal PATH, so include both Homebrew prefixes — /opt/homebrew (Apple
+    Silicon) and /usr/local (Intel) — plus the uv tool dir."""
     return os.pathsep.join(
-        [str(Path.home() / ".local" / "bin"), "/opt/homebrew/bin", "/usr/bin", "/bin"]
+        [
+            str(Path.home() / ".local" / "bin"),
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "/usr/bin",
+            "/bin",
+        ]
     )
 
 
@@ -114,7 +123,7 @@ def _menubar_agent() -> Agent:
         MENUBAR_LABEL,
         [_which("bwise-menubar")],
         keep_alive=True,
-        environment={"PATH": _menubar_path_env()},
+        environment={"PATH": _agent_path_env()},
     )
 
 
@@ -124,7 +133,7 @@ def _sleepguard_agent() -> Agent:
         SLEEPLOCK_LABEL,
         [_which("bwise"), "sleep-guard"],
         keep_alive=True,
-        environment={"PATH": _menubar_path_env()},
+        environment={"PATH": _agent_path_env()},
     )
 
 

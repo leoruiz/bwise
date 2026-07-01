@@ -59,8 +59,10 @@ def test_plist_sync_has_interval_no_keepalive():
 
 
 def test_plist_menubar_has_path_env():
-    p = agents.build("menubar").plist()
-    assert "PATH" in p["EnvironmentVariables"]
+    path = agents.build("menubar").plist()["EnvironmentVariables"]["PATH"]
+    # both Homebrew prefixes so GUI agents find pinentry on Intel + Apple Silicon
+    assert "/opt/homebrew/bin" in path
+    assert "/usr/local/bin" in path
 
 
 def test_sleepguard_agent_runs_sleep_guard():
