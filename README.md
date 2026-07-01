@@ -67,6 +67,20 @@ bwise completion [fish]  # print a shell completion script
 bwise set-notes <item>   # replace notes from stdin
 ```
 
+### Menubar indicator (macOS)
+
+An optional menubar app shows the vault state (🔓 unlocked / 🔒 locked) and
+offers unlock / lock / sync from a click. It needs the `menubar` extra (macOS
+only; pulls in `rumps`/PyObjC):
+
+```sh
+uv tool install 'bwise[menubar]'
+bwise-menubar                 # runs the status-bar app in the foreground
+```
+
+Run it at login by pointing a launch agent at `bwise-menubar` (that machine-level
+wiring lives outside this package).
+
 ### `bwise env` field convention
 
 Each custom field acts on its **name** (the value is always opaque):
