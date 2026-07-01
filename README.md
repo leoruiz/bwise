@@ -151,13 +151,10 @@ token = bwise.extract_token(item)
 |--------------------|--------------------------|----------------------------------|
 | `BW_SERVE_URL`     | `http://localhost:8087`  | daemon base URL                  |
 | `BWISE_PINENTRY`   | auto (`pinentry-mac`…)   | pinentry program for `bwise up`  |
-| `BWISE_SERVE_RESTART` | _(unset)_             | command to restart a dead/stuck `bw serve` |
 
-When set, `BWISE_SERVE_RESTART` lets `bwise up` self-heal: if the daemon is
-unreachable or wedged (e.g. returning HTTP 500), bwise runs this command and
-waits for it to come back before unlocking. bwise doesn't own the daemon's
-lifecycle, so the restart mechanism is left to you — e.g. a `launchctl kickstart
--k` of your `bw serve` service.
+On macOS, `bwise up` self-heals a dead or stuck `bw serve` by restarting its
+agent (`com.bwise.serve`) — install it with `bwise agent install serve` (see
+[Running at login](#running-at-login-macos)).
 
 ## Security model
 
