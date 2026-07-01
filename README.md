@@ -80,7 +80,7 @@ from `PATH`) and loads them via `launchctl`:
 
 ```sh
 uv tool install 'bwise[menubar,sleepguard]'   # extras for the GUI/sleep agents
-bwise agent install --all
+bwise agent install all
 ```
 
 | Agent | Role |
