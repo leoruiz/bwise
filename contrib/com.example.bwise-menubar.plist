@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Example LaunchAgent to run the bwise menubar indicator at login.
+
+  Install:
+    1. Install bwise with the menubar extra:  uv tool install 'bwise[menubar]'
+    2. Replace /Users/YOU below with your home path, and check the two absolute
+       paths match where `bwise-menubar` and `bwise` actually live
+       (`which bwise-menubar`). Homebrew installs to /opt/homebrew/bin; uv tool
+       installs to ~/.local/bin.
+    3. Copy to ~/Library/LaunchAgents/com.example.bwise-menubar.plist
+    4. launchctl bootstrap gui/$(id -u) \
+         ~/Library/LaunchAgents/com.example.bwise-menubar.plist
+
+  A GUI-launched process does not inherit your shell PATH, so PATH is set
+  explicitly below — the app shells out to `bwise` and needs it (and pinentry)
+  resolvable.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.example.bwise-menubar</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/YOU/.local/bin/bwise-menubar</string>
+	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/Users/YOU/.local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/Users/YOU/Library/Logs/bwise-menubar.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/YOU/Library/Logs/bwise-menubar.log</string>
+</dict>
+</plist>

@@ -78,8 +78,17 @@ uv tool install 'bwise[menubar]'
 bwise-menubar                 # runs the status-bar app in the foreground
 ```
 
-Run it at login by pointing a launch agent at `bwise-menubar` (that machine-level
-wiring lives outside this package).
+To run it at login, install it as a macOS **LaunchAgent**. A ready-to-adapt
+example is in [`contrib/com.example.bwise-menubar.plist`](contrib/com.example.bwise-menubar.plist);
+replace the placeholder paths (a GUI-launched agent doesn't inherit your shell
+`PATH`, so the plist sets it explicitly) and load it with:
+
+```sh
+cp contrib/com.example.bwise-menubar.plist \
+  ~/Library/LaunchAgents/com.example.bwise-menubar.plist
+launchctl bootstrap gui/$(id -u) \
+  ~/Library/LaunchAgents/com.example.bwise-menubar.plist
+```
 
 ### `bwise env` field convention
 
