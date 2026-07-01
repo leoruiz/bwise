@@ -1,8 +1,5 @@
 """Health checks for the bw CLI, the ``bw serve`` daemon, the vault, and the
-bwise launchd agents.
-
-Generic, machine-agnostic checks that belong in the package (as opposed to the
-dotfiles ``bw-doctor``, which also checks sleepwatcher).
+bwise launchd agents (macOS).
 """
 
 from __future__ import annotations
