@@ -9,6 +9,7 @@ class Bwise < Formula
 
   depends_on "pinentry-mac"
   depends_on "python@3.12"
+  depends_on "uv" => :build
 
   resource "cyclopts" do
     url "https://files.pythonhosted.org/packages/65/e7/4b3048094559b86a800e0f0de7faf8e6d8213727cf31553ec58453f25abc/cyclopts-4.19.0.tar.gz"
@@ -56,7 +57,16 @@ class Bwise < Formula
   end
 
   def install
-    virtualenv_install_with_resources
+    venv = virtualenv_create(libexec, "python3.12")
+    venv.pip_install resources
+    # bwise builds with the uv_build backend, which pip can't compile in
+    # isolation; build the (pure-Python) wheel with uv and install it with uv
+    # too (Homebrew's pip helper forces --no-binary, which rejects wheels).
+    system "uv", "build", "--wheel", "--out-dir", buildpath/"dist"
+    system "uv", "pip", "install", "--python", libexec/"bin/python",
+           "--no-deps", "--offline",
+           Dir[buildpath/"dist/bwise-#{version}-py3-none-any.whl"].first
+    bin.install_symlink libexec/"bin/bwise"
   end
 
   test do
