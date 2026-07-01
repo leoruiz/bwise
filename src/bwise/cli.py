@@ -14,7 +14,12 @@ from typing import Annotated, Literal
 import cyclopts
 from loguru import logger
 
-from . import doctor as doctor_mod, env as env_mod, serve as serve_mod
+from . import (
+    agents as agents_mod,
+    doctor as doctor_mod,
+    env as env_mod,
+    serve as serve_mod,
+)
 from .client import (
     AmbiguousItemError,
     BwError,
@@ -218,6 +223,47 @@ def set_notes(item: str, /, *, item_type: TypeOption = None) -> None:
     data = _resolve_item(item, item_type)
     data["notes"] = sys.stdin.read()
     put_item(data)
+
+
+agent_app = cyclopts.App(name="agent", help="Manage bwise's launchd agents (macOS).")
+app.command(agent_app)
+
+
+def _require_macos() -> None:
+    if sys.platform != "darwin":
+        raise BwError("`bwise agent` is macOS-only")
+
+
+def _agent_targets(name: str) -> list[str]:
+    return list(agents_mod.NAMES) if name == "all" else [name]
+
+
+@agent_app.command(name="install")
+def agent_install(name: str = "all") -> None:
+    """Install/load a bwise agent (serve/sync/menubar) or `all`."""
+    _require_macos()
+    for target in _agent_targets(name):
+        agent = agents_mod.build(target)
+        logger.info(f"{agent.label}: {agents_mod.install(agent)}")
+
+
+@agent_app.command(name="uninstall")
+def agent_uninstall(name: str = "all") -> None:
+    """Uninstall/unload a bwise agent (serve/sync/menubar) or `all`."""
+    _require_macos()
+    for target in _agent_targets(name):
+        agent = agents_mod.build(target)
+        logger.info(f"{agent.label}: {agents_mod.uninstall(agent)}")
+
+
+@agent_app.command(name="status")
+def agent_status(name: str = "all") -> None:
+    """Print whether each bwise agent is loaded."""
+    _require_macos()
+    for target in _agent_targets(name):
+        agent = agents_mod.build(target)
+        state = "loaded" if agents_mod.is_loaded(agent) else "not loaded"
+        print(f"{agent.label}: {state}")
 
 
 def main() -> None:

@@ -296,6 +296,66 @@ def test_set_notes(monkeypatch):
     assert saved["notes"] == "new notes"
 
 
+@pytest.fixture
+def _on_macos(monkeypatch):
+    monkeypatch.setattr(cli.sys, "platform", "darwin")
+
+
+class _FakeAgent:
+    def __init__(self, name):
+        self.name = name
+        self.label = f"com.bwise.{name}"
+
+
+def test_agent_install_all(monkeypatch, _on_macos):
+    installed = []
+    monkeypatch.setattr(cli.agents_mod, "build", lambda n: _FakeAgent(n))
+    monkeypatch.setattr(
+        cli.agents_mod, "install", lambda a: installed.append(a.name) or "loaded"
+    )
+    cli.agent_install("all")
+    assert installed == list(cli.agents_mod.NAMES)
+
+
+def test_agent_install_one(monkeypatch, _on_macos):
+    seen = {}
+
+    def _build(n):
+        seen["name"] = n
+        return _FakeAgent(n)
+
+    monkeypatch.setattr(cli.agents_mod, "build", _build)
+    monkeypatch.setattr(cli.agents_mod, "install", lambda a: "loaded")
+    cli.agent_install("sync")
+    assert seen["name"] == "sync"
+
+
+def test_agent_uninstall(monkeypatch, _on_macos):
+    removed = []
+    monkeypatch.setattr(cli.agents_mod, "build", lambda n: _FakeAgent(n))
+    monkeypatch.setattr(
+        cli.agents_mod, "uninstall", lambda a: removed.append(a.name) or "removed"
+    )
+    cli.agent_uninstall("menubar")
+    assert removed == ["menubar"]
+
+
+def test_agent_status_prints(monkeypatch, capsys, _on_macos):
+    class _A:
+        label = "com.bwise.sync"
+
+    monkeypatch.setattr(cli.agents_mod, "build", lambda n: _A())
+    monkeypatch.setattr(cli.agents_mod, "is_loaded", lambda a: True)
+    cli.agent_status("sync")
+    assert "com.bwise.sync: loaded" in capsys.readouterr().out
+
+
+def test_agent_requires_macos(monkeypatch):
+    monkeypatch.setattr(cli.sys, "platform", "linux")
+    with pytest.raises(BwError, match="macOS-only"):
+        cli.agent_install("all")
+
+
 def test_main_success(monkeypatch):
     monkeypatch.setattr(cli, "app", lambda: None)
     cli.main()  # no exit
