@@ -62,10 +62,36 @@ bwise list [TERM] [--type T] [--ids]   # item names; TERM searches, --type filte
 
 # Item commands accept --type to assert/guard the item's type, e.g.
 bwise get-notes ylab/api --type note   # errors unless ylab/api is a secure note
-bwise doctor             # health-check the bw CLI, daemon, and vault
+bwise doctor             # health-check the bw CLI, daemon, vault, and agents
 bwise completion [fish]  # print a shell completion script
 bwise set-notes <item>   # replace notes from stdin
+
+# macOS: manage bwise's own launchd agents (bw serve, sync, menubar, sleep-lock)
+bwise agent install [serve|sync|menubar|sleepguard|all]
+bwise agent status [name|all]
+bwise agent uninstall [name|all]
 ```
+
+### Running at login (macOS)
+
+On macOS, bwise can manage its own launchd agents — no hand-written plists. It
+generates each from resolved config (the port from `BW_SERVE_URL`, program paths
+from `PATH`) and loads them via `launchctl`:
+
+```sh
+uv tool install 'bwise[menubar,sleepguard]'   # extras for the GUI/sleep agents
+bwise agent install --all
+```
+
+| Agent | Role |
+|-------|------|
+| `com.bwise.serve` | the `bw serve` daemon (kept running when already up) |
+| `com.bwise.sync` | `bwise sync` every 15 min |
+| `com.bwise.menubar` | the menubar indicator (needs the `menubar` extra) |
+| `com.bwise.sleeplock` | `bwise sleep-guard` — lock on sleep (needs the `sleepguard` extra) |
+
+`bwise doctor` reports whether each agent is loaded, and `bwise up` self-heals a
+dead or stuck `bw serve` by restarting its agent.
 
 ### Menubar indicator (macOS)
 
@@ -78,10 +104,9 @@ uv tool install 'bwise[menubar]'
 bwise-menubar                 # runs the status-bar app in the foreground
 ```
 
-To run it at login, install it as a macOS **LaunchAgent**. A ready-to-adapt
-example is in [`contrib/com.example.bwise-menubar.plist`](contrib/com.example.bwise-menubar.plist);
-replace the placeholder paths (a GUI-launched agent doesn't inherit your shell
-`PATH`, so the plist sets it explicitly) and load it with:
+To run it at login, use `bwise agent install menubar` (see [Running at login](#running-at-login-macos)),
+or install the [`contrib/com.example.bwise-menubar.plist`](contrib/com.example.bwise-menubar.plist)
+example LaunchAgent by hand:
 
 ```sh
 cp contrib/com.example.bwise-menubar.plist \
