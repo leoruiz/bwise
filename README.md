@@ -52,6 +52,7 @@ mode (e.g. `bw serve --port 8087`).
 ```sh
 bwise up                 # unlock (bare `bwise` also unlocks)
 bwise lock
+bwise sync               # sync the vault with the Bitwarden server
 bwise status [--quiet]   # exit 0/1/2/3 = unlocked/locked/unauthenticated/unreachable
 bwise get  <item>        # raw item JSON
 bwise get-notes <item>   # just the notes field

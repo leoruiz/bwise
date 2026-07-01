@@ -92,6 +92,19 @@ def test_lock_failure_raises(monkeypatch):
         cli.lock()
 
 
+def test_sync_success(monkeypatch):
+    monkeypatch.setattr(cli, "request", lambda *a, **k: {"success": True})
+    cli.sync()
+
+
+def test_sync_failure_raises(monkeypatch):
+    monkeypatch.setattr(
+        cli, "request", lambda *a, **k: {"success": False, "message": "x"}
+    )
+    with pytest.raises(BwError, match="sync failed"):
+        cli.sync()
+
+
 @pytest.mark.parametrize(
     "state,code",
     [("unlocked", 0), ("locked", 1), ("unauthenticated", 2), ("nope", 3)],

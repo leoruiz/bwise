@@ -124,6 +124,15 @@ def lock() -> None:
     logger.info("vault locked")
 
 
+@app.command
+def sync() -> None:
+    """Sync the vault with the Bitwarden server."""
+    result = request("POST", "/sync")
+    if not result.get("success"):
+        raise BwError(f"sync failed: {result.get('message')}")
+    logger.info("vault synced")
+
+
 @app.command(name="status")
 def status_cmd(*, quiet: bool = False) -> None:
     """Print the vault status; exit 0/1/2/3 = unlocked/locked/unauth/unreachable."""
