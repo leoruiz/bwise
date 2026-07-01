@@ -1,6 +1,6 @@
 [project]
 name = "bwise"
-version = "0.2.1"
+version = "0.2.5"
 description = "Bitwarden Wrapper Injecting Secrets Everywhere — a thin client over the local `bw serve` daemon."
 readme = "README.md"
 requires-python = ">=3.10"
