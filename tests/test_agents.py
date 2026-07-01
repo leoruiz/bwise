@@ -56,6 +56,13 @@ def test_plist_menubar_has_path_env():
     assert "PATH" in p["EnvironmentVariables"]
 
 
+def test_sleepguard_agent_runs_sleep_guard():
+    agent = agents.build("sleepguard")
+    assert agent.label == agents.SLEEPLOCK_LABEL
+    assert agent.program[1:] == ["sleep-guard"]
+    assert agent.keep_alive is True
+
+
 def test_plist_roundtrips_through_plistlib():
     p = agents.build("serve").plist()
     assert plistlib.loads(plistlib.dumps(p)) == p

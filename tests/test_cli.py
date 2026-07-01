@@ -356,6 +356,13 @@ def test_agent_requires_macos(monkeypatch):
         cli.agent_install("all")
 
 
+def test_sleep_guard_delegates(monkeypatch):
+    called = []
+    monkeypatch.setattr(cli.sleepguard_mod, "main", lambda: called.append(True))
+    cli.sleep_guard()
+    assert called == [True]
+
+
 def test_main_success(monkeypatch):
     monkeypatch.setattr(cli, "app", lambda: None)
     cli.main()  # no exit

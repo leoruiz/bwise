@@ -12,6 +12,8 @@ dependencies = ["cyclopts>=4", "loguru>=0.7"]
 [project.optional-dependencies]
 # macOS-only menubar vault indicator (`bwise-menubar`); pulls in PyObjC.
 menubar = ["rumps>=0.4"]
+# macOS-only sleep-lock (`bwise sleep-guard`); watches for sleep via PyObjC.
+sleepguard = ["pyobjc-framework-cocoa>=10"]
 
 [project.urls]
 Homepage = "https://github.com/leoruiz/bwise"
@@ -69,6 +71,7 @@ known-first-party = ["bwise"]
 [tool.ruff.lint.per-file-ignores]
 "src/bwise/cli.py" = ["T20"]  # the CLI's job is to print to stdout
 "src/bwise/menubar.py" = ["T20"]  # menubar entry point prints setup hints
+"src/bwise/sleepguard.py" = ["T20"]  # sleep-guard prints a setup hint
 "tests/**/*.py" = [
     "S101",    # assert allowed in tests
     "S105",    # hardcoded passwords in test data
@@ -77,6 +80,7 @@ known-first-party = ["bwise"]
     "PLR2004", # magic values in assertions
     "PLW0108", # unnecessary lambda
     "PLR0913", # many arguments — test helpers take several knobs
+    "N802",    # camelCase method names in fakes that mimic ObjC/pyobjc APIs
     "F841",    # unused variable (test setup)
 ]
 
@@ -94,8 +98,8 @@ show_missing = true
 known_first_party = ["bwise"]
 
 [tool.deptry.per_rule_ignores]
-# rumps is imported dynamically (importlib) in the optional menubar extra.
-DEP002 = ["rumps"]
+# imported dynamically (importlib) in the optional macOS extras.
+DEP002 = ["rumps", "pyobjc-framework-cocoa"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -76,7 +76,7 @@ def test_agents_checked_and_ok_on_macos(monkeypatch):
     _patch(monkeypatch, platform="darwin", loaded=True)
     monkeypatch.setattr(doctor, "status", lambda: "unlocked")
     results = doctor.run_checks()
-    assert _levels(results) == [doctor.OK] * 8  # 5 base + 3 agents
+    assert _levels(results) == [doctor.OK] * 9  # 5 base + 4 agents
     assert any("agent com.bwise.serve loaded" in m for _, m in results)
 
 
@@ -85,6 +85,6 @@ def test_agent_not_loaded_warns_on_macos(monkeypatch):
     monkeypatch.setattr(doctor, "status", lambda: "unlocked")
     results = doctor.run_checks()
     agent_lines = results[5:]
-    assert len(agent_lines) == 3
+    assert len(agent_lines) == 4
     assert all(level == doctor.WARN for level, _ in agent_lines)
     assert any("bwise agent install serve" in m for _, m in agent_lines)

@@ -19,6 +19,7 @@ from . import (
     doctor as doctor_mod,
     env as env_mod,
     serve as serve_mod,
+    sleepguard as sleepguard_mod,
 )
 from .client import (
     AmbiguousItemError,
@@ -227,6 +228,12 @@ def set_notes(item: str, /, *, item_type: TypeOption = None) -> None:
 
 agent_app = cyclopts.App(name="agent", help="Manage bwise's launchd agents (macOS).")
 app.command(agent_app)
+
+
+@app.command(name="sleep-guard")
+def sleep_guard() -> None:
+    """Lock the vault when the Mac sleeps (long-running; needs the sleepguard extra)."""
+    sleepguard_mod.main()
 
 
 def _require_macos() -> None:

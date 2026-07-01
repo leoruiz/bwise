@@ -24,6 +24,9 @@ dependencies = [
 menubar = [
     { name = "rumps" },
 ]
+sleepguard = [
+    { name = "pyobjc-framework-cocoa" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -38,9 +41,10 @@ dev = [
 requires-dist = [
     { name = "cyclopts", specifier = ">=4" },
     { name = "loguru", specifier = ">=0.7" },
+    { name = "pyobjc-framework-cocoa", marker = "extra == 'sleepguard'", specifier = ">=10" },
     { name = "rumps", marker = "extra == 'menubar'", specifier = ">=0.4" },
 ]
-provides-extras = ["menubar"]
+provides-extras = ["menubar", "sleepguard"]
 
 [package.metadata.requires-dev]
 dev = [

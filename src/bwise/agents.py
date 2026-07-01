@@ -25,7 +25,13 @@ SYNC_INTERVAL_S = 900
 SERVE_LABEL = "com.bwise.serve"
 SYNC_LABEL = "com.bwise.sync"
 MENUBAR_LABEL = "com.bwise.menubar"
-LABELS = {"serve": SERVE_LABEL, "sync": SYNC_LABEL, "menubar": MENUBAR_LABEL}
+SLEEPLOCK_LABEL = "com.bwise.sleeplock"
+LABELS = {
+    "serve": SERVE_LABEL,
+    "sync": SYNC_LABEL,
+    "menubar": MENUBAR_LABEL,
+    "sleepguard": SLEEPLOCK_LABEL,
+}
 
 Runner = Callable[[list[str]], "subprocess.CompletedProcess[str]"]
 
@@ -112,10 +118,21 @@ def _menubar_agent() -> Agent:
     )
 
 
+def _sleepguard_agent() -> Agent:
+    return Agent(
+        "sleepguard",
+        SLEEPLOCK_LABEL,
+        [_which("bwise"), "sleep-guard"],
+        keep_alive=True,
+        environment={"PATH": _menubar_path_env()},
+    )
+
+
 BUILDERS: dict[str, Callable[[], Agent]] = {
     "serve": _serve_agent,
     "sync": _sync_agent,
     "menubar": _menubar_agent,
+    "sleepguard": _sleepguard_agent,
 }
 NAMES = tuple(BUILDERS)
 
