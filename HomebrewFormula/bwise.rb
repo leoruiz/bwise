@@ -4,7 +4,7 @@ class Bwise < Formula
   desc "Bitwarden Wrapper Injecting Secrets Everywhere — thin client over bw serve"
   homepage "https://github.com/leoruiz/bwise"
   url "https://github.com/leoruiz/bwise/archive/refs/tags/v0.2.1.tar.gz"
-  sha256 "REPLACE_WITH_TARBALL_SHA256"
+  sha256 "1c2e3693be18844f4b0a5d273bc3ba0c5ff05d1ca8426aa90d8e53fb02325c14"
   license "MIT"
 
   depends_on "pinentry-mac"
