@@ -130,7 +130,7 @@ def _load_rumps() -> Any:
     return importlib.import_module("rumps")
 
 
-def _draw_padlock(filled: bool) -> Any:
+def _draw_padlock(filled: bool) -> Any:  # pragma: no cover  (AppKit; macOS-only)
     """Draw the bwise "b" padlock black-on-transparent and return the NSImage.
 
     The shackle is always stroked; a filled body knocks the ``b`` out as a hole so
@@ -193,7 +193,7 @@ def _draw_padlock(filled: bool) -> Any:
     return image
 
 
-def _build_icons() -> IconMap:
+def _build_icons() -> IconMap:  # pragma: no cover  (AppKit; macOS-only)
     """Render each state's "b" padlock to a PNG and return a state -> icon map.
 
     Monochrome states keep the black drawing and are flagged ``template`` so macOS
