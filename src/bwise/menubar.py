@@ -85,8 +85,7 @@ def main(*, run: Runner = _run_bwise, load: Callable[[], Any] = _load_rumps) -> 
         rumps = load()
     except ImportError:
         print(
-            "bwise-menubar needs the 'menubar' extra: "
-            "uv tool install 'bwise[menubar]'",
+            "bwise-menubar needs the 'menubar' extra: uv tool install 'bwise[menubar]'",
             file=sys.stderr,
         )
         raise SystemExit(1) from None
