@@ -37,6 +37,37 @@ def test_find_pinentry_none(monkeypatch):
     assert pinentry.find_pinentry() is None
 
 
+def test_find_pinentry_skips_all_over_ssh(monkeypatch):
+    monkeypatch.delenv("BWISE_PINENTRY", raising=False)
+    monkeypatch.setenv("SSH_CONNECTION", "1.2.3.4 5 6.7.8.9 22")
+    monkeypatch.setattr(pinentry.shutil, "which", lambda p: "/usr/bin/" + p)
+    # Headless: no pinentry variant is usable, so fall back to getpass.
+    assert pinentry.find_pinentry() is None
+
+
+def test_find_pinentry_ssh_tty_also_headless(monkeypatch):
+    monkeypatch.delenv("BWISE_PINENTRY", raising=False)
+    monkeypatch.delenv("SSH_CONNECTION", raising=False)
+    monkeypatch.setenv("SSH_TTY", "/dev/ttys001")
+    monkeypatch.setattr(pinentry.shutil, "which", lambda p: "/usr/bin/" + p)
+    assert pinentry.find_pinentry() is None
+
+
+def test_find_pinentry_gui_prefers_mac(monkeypatch):
+    monkeypatch.delenv("BWISE_PINENTRY", raising=False)
+    monkeypatch.delenv("SSH_CONNECTION", raising=False)
+    monkeypatch.delenv("SSH_TTY", raising=False)
+    monkeypatch.setattr(pinentry.shutil, "which", lambda p: "/usr/bin/" + p)
+    assert pinentry.find_pinentry() == "pinentry-mac"
+
+
+def test_find_pinentry_override_honored_over_ssh(monkeypatch):
+    monkeypatch.setenv("BWISE_PINENTRY", "pinentry-mac")
+    monkeypatch.setenv("SSH_CONNECTION", "1.2.3.4 5 6.7.8.9 22")
+    monkeypatch.setattr(pinentry.shutil, "which", lambda p: "/usr/bin/" + p)
+    assert pinentry.find_pinentry() == "pinentry-mac"
+
+
 def _fake_proc(stdout):
     return subprocess.CompletedProcess(args=[], returncode=0, stdout=stdout, stderr="")
 

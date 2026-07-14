@@ -17,6 +17,18 @@ _CANDIDATES = ("pinentry-mac", "pinentry")
 _ASSUAN_PERCENT = 0x25  # '%' introduces a %XX escape
 
 
+def _headless() -> bool:
+    """True when there's no local window server (e.g. an SSH session).
+
+    We drive pinentry over piped stdio without wiring ``OPTION ttyname``, so no
+    pinentry variant works here: ``pinentry-mac`` hangs waiting for a window
+    server, and curses ``pinentry`` errors on ``isatty``. In that case the caller
+    prompts with :func:`getpass`, which reads ``/dev/tty`` directly (no echo) and
+    works fine over SSH.
+    """
+    return bool(os.environ.get("SSH_CONNECTION") or os.environ.get("SSH_TTY"))
+
+
 def _unquote_assuan(text: str) -> str:
     """Decode an Assuan ``%XX``-escaped data line from pinentry."""
     raw = text.encode()
@@ -33,10 +45,17 @@ def _unquote_assuan(text: str) -> str:
 
 
 def find_pinentry() -> str | None:
-    """Return the pinentry program to use, or ``None`` if none is installed."""
+    """Return the pinentry program to use, or ``None`` if none is usable.
+
+    In a headless session (SSH) no pinentry variant works with our piped-stdio
+    Assuan driver, so return ``None`` and let the caller fall back to
+    :func:`getpass`. An explicit ``$BWISE_PINENTRY`` override is always honored.
+    """
     override = os.environ.get("BWISE_PINENTRY")
     if override:
         return override if shutil.which(override) else None
+    if _headless():
+        return None
     for candidate in _CANDIDATES:
         if shutil.which(candidate):
             return candidate
