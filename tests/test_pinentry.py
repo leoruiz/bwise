@@ -93,9 +93,43 @@ def test_pinentry_prompt_no_data(monkeypatch):
     assert pinentry._pinentry_prompt("p") is None
 
 
+def test_pinentry_prompt_sends_seterror(monkeypatch):
+    sent = {}
+
+    def fake_run(argv, **kwargs):
+        sent["input"] = kwargs.get("input", "")
+        return _fake_proc("OK\nD pw\nOK\n")
+
+    monkeypatch.setattr(pinentry.subprocess, "run", fake_run)
+    assert pinentry._pinentry_prompt("p", error="Incorrect password") == "pw"
+    assert "SETERROR Incorrect password" in sent["input"]
+
+
+def test_pinentry_prompt_omits_seterror_without_error(monkeypatch):
+    sent = {}
+
+    def fake_run(argv, **kwargs):
+        sent["input"] = kwargs.get("input", "")
+        return _fake_proc("OK\nD pw\nOK\n")
+
+    monkeypatch.setattr(pinentry.subprocess, "run", fake_run)
+    pinentry._pinentry_prompt("p")
+    assert "SETERROR" not in sent["input"]
+
+
+def test_prompt_master_password_getpass_shows_error(monkeypatch):
+    monkeypatch.setattr(pinentry, "find_pinentry", lambda: None)
+    prompts = []
+    monkeypatch.setattr(
+        pinentry.getpass, "getpass", lambda prompt: prompts.append(prompt) or "typed"
+    )
+    assert pinentry.prompt_master_password(error="Try again") == "typed"
+    assert "Try again" in prompts[0]
+
+
 def test_prompt_master_password_via_pinentry(monkeypatch):
     monkeypatch.setattr(pinentry, "find_pinentry", lambda: "p")
-    monkeypatch.setattr(pinentry, "_pinentry_prompt", lambda prog: "pw")
+    monkeypatch.setattr(pinentry, "_pinentry_prompt", lambda prog, error=None: "pw")
     assert pinentry.prompt_master_password() == "pw"
 
 

@@ -40,6 +40,7 @@ logger.add(sys.stderr, format="bwise: {message}", level="INFO")
 app = cyclopts.App(name="bwise", help=__doc__)
 
 EXIT_STATUS = {"unlocked": 0, "locked": 1, "unauthenticated": 2}
+UNLOCK_ATTEMPTS = 3  # re-prompt (with an in-place error) this many times
 ITEM_TYPES = {"login": 1, "note": 2, "card": 3, "identity": 4}
 ItemType = Literal["login", "note", "card", "identity"]
 TypeOption = Annotated[ItemType | None, cyclopts.Parameter(name="--type")]
@@ -88,6 +89,11 @@ def _resolve_item(name: str, item_type: str | None = None) -> dict:
     return item
 
 
+def _is_wrong_password(message: str) -> bool:
+    lowered = message.lower()
+    return "decrypt" in lowered or "cryptography" in lowered
+
+
 def _unlock() -> None:
     serve_mod.ensure_healthy(report=logger.warning)
     state = status()
@@ -100,14 +106,21 @@ def _unlock() -> None:
         logger.warning(
             "no pinentry found — falling back to getpass; install pinentry-mac"
         )
-    password = prompt_master_password()
-    if not password:
-        raise BwError("no master password entered")
-    result = request("POST", "/unlock", {"password": password})
-    if not result.get("success"):
-        raise BwError(f"unlock failed: {result.get('message')}")
-    request("POST", "/sync")
-    logger.info("vault unlocked")
+    error: str | None = None
+    for _ in range(UNLOCK_ATTEMPTS):
+        password = prompt_master_password(error)
+        if not password:
+            raise BwError("no master password entered")
+        result = request("POST", "/unlock", {"password": password})
+        if result.get("success"):
+            request("POST", "/sync")
+            logger.info("vault unlocked")
+            return
+        message = result.get("message") or ""
+        if not _is_wrong_password(message):
+            raise BwError(f"unlock failed: {message}")
+        error = "Incorrect master password — try again"
+    raise BwError("incorrect master password")
 
 
 @app.command

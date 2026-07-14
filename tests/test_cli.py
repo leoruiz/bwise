@@ -46,7 +46,7 @@ def test_unlock_unauthenticated_raises(monkeypatch):
 
 def test_unlock_happy_path(monkeypatch, patch_request):
     monkeypatch.setattr(cli, "status", lambda: "locked")
-    monkeypatch.setattr(cli, "prompt_master_password", lambda: "pw")
+    monkeypatch.setattr(cli, "prompt_master_password", lambda error=None: "pw")
     cli._default()
     assert ("POST", "/unlock", {"password": "pw"}) in patch_request
     assert ("POST", "/sync", None) in patch_request
@@ -55,7 +55,7 @@ def test_unlock_happy_path(monkeypatch, patch_request):
 def test_unlock_warns_without_pinentry(monkeypatch, patch_request):
     monkeypatch.setattr(cli, "status", lambda: "locked")
     monkeypatch.setattr(cli, "find_pinentry", lambda: None)
-    monkeypatch.setattr(cli, "prompt_master_password", lambda: "pw")
+    monkeypatch.setattr(cli, "prompt_master_password", lambda error=None: "pw")
     warnings = []
     monkeypatch.setattr(cli.logger, "warning", warnings.append)
     cli.up()
@@ -64,19 +64,67 @@ def test_unlock_warns_without_pinentry(monkeypatch, patch_request):
 
 def test_unlock_no_password_raises(monkeypatch):
     monkeypatch.setattr(cli, "status", lambda: "locked")
-    monkeypatch.setattr(cli, "prompt_master_password", lambda: None)
+    monkeypatch.setattr(cli, "prompt_master_password", lambda error=None: None)
     with pytest.raises(BwError, match="no master password"):
         cli.up()
 
 
 def test_unlock_wrong_password_raises(monkeypatch):
     monkeypatch.setattr(cli, "status", lambda: "locked")
-    monkeypatch.setattr(cli, "prompt_master_password", lambda: "bad")
+    monkeypatch.setattr(cli, "prompt_master_password", lambda error=None: "bad")
     monkeypatch.setattr(
         cli, "request", lambda *a, **k: {"success": False, "message": "no"}
     )
     with pytest.raises(BwError, match="unlock failed"):
         cli.up()
+
+
+def test_unlock_bad_master_password_reprompts_then_gives_up(monkeypatch):
+    monkeypatch.setattr(cli, "status", lambda: "locked")
+    seen_errors = []
+
+    def prompt(error=None):
+        seen_errors.append(error)
+        return "wrong"
+
+    monkeypatch.setattr(cli, "prompt_master_password", prompt)
+    monkeypatch.setattr(
+        cli,
+        "request",
+        lambda *a, **k: {
+            "success": False,
+            "message": "Cryptography error, The decryption operation failed",
+        },
+    )
+    with pytest.raises(BwError, match="incorrect master password"):
+        cli.up()
+    # prompted UNLOCK_ATTEMPTS times: first with no error, then with the retry hint
+    assert len(seen_errors) == cli.UNLOCK_ATTEMPTS
+    assert seen_errors[0] is None
+    assert all("try again" in e.lower() for e in seen_errors[1:])
+
+
+def test_unlock_succeeds_on_second_attempt(monkeypatch, patch_request):
+    monkeypatch.setattr(cli, "status", lambda: "locked")
+    passwords = iter(["wrong", "right"])
+    monkeypatch.setattr(
+        cli, "prompt_master_password", lambda error=None: next(passwords)
+    )
+
+    calls = []
+
+    def fake(method, path, body=None, **kw):
+        calls.append((method, path, body))
+        if path == "/unlock":
+            if body["password"] == "right":
+                return {"success": True}
+            return {"success": False, "message": "The decryption operation failed"}
+        return {"success": True}
+
+    monkeypatch.setattr(cli, "request", fake)
+    cli.up()
+    assert ("POST", "/unlock", {"password": "right"}) in calls
+    assert ("POST", "/sync", None) in calls
 
 
 def test_lock_success(monkeypatch):

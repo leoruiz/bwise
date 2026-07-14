@@ -62,13 +62,15 @@ def find_pinentry() -> str | None:
     return None
 
 
-def _pinentry_prompt(program: str) -> str | None:
+def _pinentry_prompt(program: str, error: str | None = None) -> str | None:
     commands = (
         "SETTITLE Bitwarden\n"
         "SETPROMPT Master password:\n"
         "SETDESC Unlock the Bitwarden vault (bw serve).\n"
-        "GETPIN\nBYE\n"
     )
+    if error:
+        commands += f"SETERROR {error}\n"
+    commands += "GETPIN\nBYE\n"
     proc = subprocess.run(
         [program],
         input=commands,
@@ -85,9 +87,16 @@ def _pinentry_prompt(program: str) -> str | None:
     return None
 
 
-def prompt_master_password() -> str | None:
-    """Prompt for the master password; return ``None`` if cancelled/empty."""
+def prompt_master_password(error: str | None = None) -> str | None:
+    """Prompt for the master password; return ``None`` if cancelled/empty.
+
+    ``error`` is shown in the prompt (e.g. after a wrong password) so the caller
+    can re-prompt in place, as ``pinentry`` and ``ssh`` do.
+    """
     program = find_pinentry()
     if program:
-        return _pinentry_prompt(program)
-    return getpass.getpass("Bitwarden master password: ") or None
+        return _pinentry_prompt(program, error)
+    prompt = "Bitwarden master password: "
+    if error:
+        prompt = f"{error}\n{prompt}"
+    return getpass.getpass(prompt) or None
